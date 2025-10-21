@@ -1,0 +1,201 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/chapter-analysis.schema.json",
+  "title": "Chapter Analysis",
+  "description": "A comprehensive schema for multi-pass chapter analysis including comprehension, structure, propositions, and metadata.",
+  "type": "object",
+  "properties": {
+    "system_metadata": {
+      "type": "object",
+      "description": "Backend header metadata about the chapter",
+      "properties": {
+        "chapter_id": { "type": "string" },
+        "file_name": { "type": "string" },
+        "author_or_editor": { "type": "string" },
+        "version": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "source_text": { "type": "string" }
+      }
+    },
+    "comprehension_pass": {
+      "type": "object",
+      "description": "First-pass comprehension using 5W1H framework",
+      "properties": {
+        "who": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "entity": { "type": "string" },
+              "role_or_function": { "type": "string" },
+              "significance_in_chapter": { "type": "string" },
+              "evidence_pointer": { "type": "string" }
+            },
+            "required": ["entity"]
+          }
+        },
+        "what": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "concept_or_topic": { "type": "string" },
+              "definition_or_description": { "type": "string" },
+              "importance": { "type": "string" },
+              "evidence_pointer": { "type": "string" }
+            },
+            "required": ["concept_or_topic"]
+          }
+        },
+        "when": {
+          "type": "object",
+          "properties": {
+            "historical_or_cultural_context": { "type": "string" },
+            "chronological_sequence_within_course": { "type": "string" },
+            "moment_of_presentation_to_reader": { "type": "string" }
+          }
+        },
+        "why": {
+          "type": "object",
+          "properties": {
+            "intellectual_value": { "type": "string" },
+            "knowledge_based_value": { "type": "string" },
+            "moral_or_philosophical_significance": { "type": "string" }
+          }
+        },
+        "how": {
+          "type": "object",
+          "properties": {
+            "presentation_style": { "type": "string" },
+            "rhetorical_approach": { "type": "string" },
+            "recommended_student_strategy": { "type": "string" }
+          }
+        }
+      },
+      "required": ["who", "what", "when", "why", "how"]
+    },
+    "structural_outline": {
+      "type": "object",
+      "description": "Hierarchical outline of chapter structure",
+      "properties": {
+        "chapter_title": { "type": "string" },
+        "guiding_context_questions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "outline": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "section_title": { "type": "string" },
+              "section_summary": { "type": "string" },
+              "pedagogical_purpose": { "type": "string" },
+              "rhetorical_mode": {
+                "type": "string",
+                "enum": ["expository", "narrative", "analytical", "reflective", "procedural"]
+              },
+              "subtopics": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "subtopic_title": { "type": "string" },
+                    "key_concepts": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    },
+                    "supporting_examples": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    },
+                    "student_discussion_prompts": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    },
+                    "notes_on_instructional_sequence": { "type": "string" },
+                    "sub_subtopics": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "title": { "type": "string" },
+                          "details": { "type": "string" },
+                          "visual_or_media_support": { "type": "string" }
+                        },
+                        "required": ["title"]
+                      }
+                    }
+                  },
+                  "required": ["subtopic_title"]
+                }
+              }
+            },
+            "required": ["section_title"]
+          }
+        }
+      },
+      "required": ["chapter_title", "outline"]
+    },
+    "propositional_extraction": {
+      "type": "object",
+      "description": "Extracted propositions with truth-type classification",
+      "properties": {
+        "definition": { "type": "string" },
+        "guiding_prompts": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "propositions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "truth_type": {
+                "type": "string",
+                "enum": ["descriptive", "analytical", "normative"]
+              },
+              "statement": { "type": "string" },
+              "evidence_from_text": { "type": "string" },
+              "implication_for_learning": { "type": "string" },
+              "connections_to_other_chapters": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "potential_student_reflection_question": { "type": "string" },
+              "evidence_pointer": { "type": "string" }
+            },
+            "required": ["statement"]
+          }
+        }
+      },
+      "required": ["propositions"]
+    },
+    "analytical_metadata": {
+      "type": "object",
+      "description": "Derived metadata for curriculum placement and connections",
+      "properties": {
+        "subject_domain": { "type": "string" },
+        "curriculum_unit": { "type": "string" },
+        "disciplinary_lens": { "type": "string" },
+        "related_chapters": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "grade_level_or_audience": { "type": "string" },
+        "spiral_position": { "type": "string" }
+      }
+    },
+    "critical_reflection": {
+      "type": "object",
+      "description": "Optional critical analysis and reflection"
+    },
+    "pedagogical_mapping": {
+      "type": "object",
+      "description": "Optional pedagogical strategies and mappings"
+    }
+  },
+  "required": ["comprehension_pass", "structural_outline", "propositional_extraction"],
+  "additionalProperties": false
+}
