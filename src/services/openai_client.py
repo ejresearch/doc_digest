@@ -86,7 +86,8 @@ def call_openai_with_retry(
     system_prompt: str,
     user_prompt: str,
     temperature: float,
-    response_format: Optional[Dict[str, Any]] = None
+    response_format: Optional[Dict[str, Any]] = None,
+    max_tokens: Optional[int] = None
 ) -> str:
     """
     Call OpenAI API with automatic retry on transient failures.
@@ -96,6 +97,7 @@ def call_openai_with_retry(
         user_prompt: User message with the actual request
         temperature: Sampling temperature (0.0-2.0)
         response_format: Optional JSON schema for structured output
+        max_tokens: Optional override for max_tokens (default: OPENAI_MAX_TOKENS)
 
     Returns:
         The assistant's response content
@@ -107,7 +109,8 @@ def call_openai_with_retry(
     check_client_configured()
 
     try:
-        logger.debug(f"Calling OpenAI API with model={OPENAI_MODEL}, temp={temperature}")
+        tokens = max_tokens or OPENAI_MAX_TOKENS
+        logger.debug(f"Calling OpenAI API with model={OPENAI_MODEL}, temp={temperature}, max_tokens={tokens}")
 
         messages = [
             {"role": "system", "content": system_prompt},
@@ -119,7 +122,7 @@ def call_openai_with_retry(
             "model": OPENAI_MODEL,
             "messages": messages,
             "temperature": temperature,
-            "max_tokens": OPENAI_MAX_TOKENS
+            "max_tokens": tokens
         }
 
         # Add response_format if provided (for JSON mode)
@@ -150,7 +153,8 @@ def call_openai_structured(
     system_prompt: str,
     user_prompt: str,
     temperature: float,
-    json_schema: Optional[Dict[str, Any]] = None
+    json_schema: Optional[Dict[str, Any]] = None,
+    max_tokens: Optional[int] = None
 ) -> Dict[str, Any]:
     """
     Call OpenAI API and parse JSON response.
@@ -160,6 +164,7 @@ def call_openai_structured(
         user_prompt: User message with the actual request
         temperature: Sampling temperature (0.0-2.0)
         json_schema: Optional Pydantic model schema for validation
+        max_tokens: Optional override for max_tokens (default: OPENAI_MAX_TOKENS)
 
     Returns:
         Parsed JSON response as dictionary
@@ -183,7 +188,8 @@ def call_openai_structured(
         system_prompt=enhanced_system_prompt,
         user_prompt=user_prompt,
         temperature=temperature,
-        response_format=response_format
+        response_format=response_format,
+        max_tokens=max_tokens
     )
 
     # Parse JSON

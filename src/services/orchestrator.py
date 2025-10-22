@@ -5,7 +5,8 @@ from .llm_client import (
     extract_comprehension_pass,
     build_structural_outline,
     extract_propositions,
-    derive_analytical_metadata
+    derive_analytical_metadata,
+    extract_pedagogical_mapping
 )
 from .storage import persist_document, StorageError
 from ..models import (
@@ -13,6 +14,7 @@ from ..models import (
     StructuralOutline,
     PropositionalExtraction,
     AnalyticalMetadata,
+    PedagogicalMapping,
     ChapterAnalysis
 )
 
@@ -32,7 +34,7 @@ class PhaseError(DigestError):
 
 def digest_chapter(text: str, system_metadata: Optional[Dict[str, Any]] = None) -> Dict[str, str]:
     """
-    Process a chapter through the 4-phase analysis pipeline.
+    Process a chapter through the 5-phase analysis pipeline.
 
     Args:
         text: The chapter text to analyze
@@ -94,6 +96,18 @@ def digest_chapter(text: str, system_metadata: Optional[Dict[str, Any]] = None) 
             logger.error(f"Phase 4 failed: {e}")
             raise PhaseError("4", "Analytical metadata derivation failed", e)
 
+        # Phase 5: Pedagogical Mapping
+        logger.info("Running Phase 5: Pedagogical Mapping")
+        try:
+            pedagogical = extract_pedagogical_mapping(text)
+            # Validate Phase 5 output
+            if pedagogical.get("pedagogical_mapping"):
+                PedagogicalMapping(**pedagogical["pedagogical_mapping"])
+            logger.info("Phase 5 completed and validated")
+        except Exception as e:
+            logger.error(f"Phase 5 failed: {e}")
+            raise PhaseError("5", "Pedagogical mapping extraction failed", e)
+
         # Assemble complete document
         logger.info("Assembling final document")
         doc = {
@@ -101,7 +115,8 @@ def digest_chapter(text: str, system_metadata: Optional[Dict[str, Any]] = None) 
             **comp,
             **outline,
             **props,
-            **analytical
+            **analytical,
+            **pedagogical
         }
 
         # Master validation using JSON Schema

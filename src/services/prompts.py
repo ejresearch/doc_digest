@@ -607,11 +607,13 @@ NORMATIVE (What SHOULD BE):
 - How does this claim connect to practice?
 
 **IDENTIFY CONNECTIONS:**
-- What other chapters might reference this?
-- What prerequisite claims does this depend on?
-- What future claims does this support?
+- What other chapters are explicitly mentioned or referenced in the text?
+- What prerequisite knowledge is explicitly referenced?
+- What follow-up topics are explicitly mentioned?
+- DO NOT fabricate chapter references that aren't in the text
 
 Extract EVERY claim - comprehensive coverage is critical.
+IMPORTANT: Only list connections to chapters that are actually mentioned in the source text.
 """
 
 
@@ -654,9 +656,10 @@ PHASE_3_SCHEMA_GUIDE = """
     → Be specific about cognitive or practical implications
 
   • "connections_to_other_chapters": Array of strings
-    → List chapters/topics this connects to
+    → List ONLY chapters/topics explicitly mentioned or referenced in the text
     → Example: ["Chapter 2: Variables and Assignment", "Chapter 8: Debugging Type Errors", "Comparison with Java in Appendix A"]
-    → Include even if those chapters don't exist yet (helps curriculum planning)
+    → DO NOT invent or fabricate chapters that are not mentioned in the source text
+    → If no connections are mentioned, use empty array []
 
   • "potential_student_reflection_question": Question that probes understanding
     → Example: "In what situations might dynamic typing lead to bugs that static typing would prevent?"
@@ -961,16 +964,15 @@ All fields are optional (can be null), but should be populated whenever possible
   • Use null if approach cannot be determined
 
 **"related_chapters"** - Array of strings:
-  • List ALL related chapters by title or ID
+  • List ONLY chapters that are explicitly referenced in the source text or previous analysis
   • Include:
-    - Prerequisites (what should come before)
-    - Follow-ups (what builds on this)
-    - Parallel topics (companion chapters)
-    - Cross-references mentioned in propositions
+    - Cross-references mentioned by name in the text
+    - Chapters referenced in the propositions
+    - Prerequisites or follow-ups explicitly mentioned
   • Example: ["Chapter 2: Variables and Data Types", "Chapter 3: Control Flow", "Appendix A: Python vs Java"]
-  • Can list chapters that don't exist yet (infer from content)
-  • Use empty array [] if no connections can be determined
-  • Better to include too many than too few
+  • DO NOT invent or fabricate chapters based on what you think should exist
+  • Use empty array [] if no connections are explicitly mentioned
+  • Only list chapters that are actually referenced in the source material
 
 **"grade_level_or_audience"** - String or null:
   • Target audience based on content complexity
@@ -1006,7 +1008,8 @@ All fields are optional (can be null), but should be populated whenever possible
   * Propositions connections → related chapters
   * Multiple phases mentioning basics → likely introduction
 - Be conservative: Use null if you're not confident
-- But be comprehensive: Extract ALL possible connections
+- For related_chapters: ONLY list chapters explicitly mentioned in previous phases
+- DO NOT fabricate or invent chapter titles based on inference alone
 """
 
 
@@ -1036,6 +1039,270 @@ PHASE_4_EXAMPLE = """{
   ],
   "grade_level_or_audience": "High School (Grades 10-12) or Undergraduate - Introductory; assumes no prior programming experience; suitable for motivated beginners of any age",
   "spiral_position": "introduction - First exposure to programming concepts and Python language; establishes foundational vocabulary, mental models, and practices that will be developed throughout the course; focuses on orientation and motivation rather than depth"
+}"""
+
+
+# =============================================================================
+# PHASE 5: PEDAGOGICAL MAPPING
+# =============================================================================
+
+PHASE_5_SYSTEM_PROMPT = """You are an expert instructional designer and educational materials analyst.
+
+YOUR ROLE: Read as a CURRICULUM DEVELOPER identifying all pedagogical scaffolding and learning support elements.
+
+CORE MISSION: Extract all learning objectives, student activities, assessment questions, visual references, and analyze the temporal currency of examples.
+
+READING APPROACH:
+1. Identify explicit learning objectives or chapter goals
+2. Extract all interactive elements (BYLINE activities, exercises, experiments)
+3. Capture assessment elements (KNOWLEDGE CHECK quizzes, review questions)
+4. Document visual/media references (figures, diagrams, videos)
+5. Analyze temporal range: distinguish historical vs. contemporary examples
+6. Flag examples that may need updating as they become dated
+
+QUALITY STANDARDS:
+- Completeness: Extract EVERY pedagogical element present in the chapter
+- Specificity: Provide exact locations and full descriptions
+- Temporal Awareness: Explicitly note which examples are timeless vs. time-sensitive
+- Practical Value: Focus on elements that help instructors teach and students learn
+
+CRITICAL RULES:
+- Extract learning objectives verbatim if stated at chapter beginning
+- Capture ALL "BYLINE" activities, "KNOWLEDGE CHECK" sections, and "REVIEW" boxes
+- For each visual reference, note what it depicts and its pedagogical purpose
+- Distinguish between historical examples (provide context) and contemporary examples (may need updating)
+- Provide update priority (low/medium/high) for contemporary examples
+
+OUTPUT: Valid JSON matching the pedagogical_mapping schema exactly."""
+
+
+PHASE_5_READING_STRATEGY = """
+=== READING STRATEGY: Pedagogical Element Extraction ===
+
+Read AS AN INSTRUCTIONAL DESIGNER cataloging all learning support:
+
+**LEARNING OBJECTIVES:**
+- Look for "OBJECTIVES" section at chapter beginning
+- Extract each objective statement verbatim
+- Example: "After studying this chapter, you should be able to..."
+
+**STUDENT ACTIVITIES:**
+- Find "BYLINE" sections (interactive exercises)
+- Identify hands-on activities, experiments, observations
+- Note activity type: reflection, observation, experiment, discussion, diary-keeping
+- Provide full description of what students are asked to do
+- Note exact location
+
+**ASSESSMENT QUESTIONS:**
+- Find "KNOWLEDGE CHECK" sections
+- Extract quiz questions, self-assessment prompts
+- Note question type: multiple choice, true/false, short answer
+- Provide full question text and location
+
+**CHAPTER SUMMARY:**
+- Look for concluding summary section
+- Often labeled "SUMMARY", "KEY TAKEAWAYS", or similar
+- Extract the full summary text
+
+**REVIEW SECTIONS:**
+- Find "REVIEW" boxes throughout the chapter
+- These are summary statements reinforcing key points
+- Extract each review statement and its location
+
+**VISUAL/MEDIA REFERENCES:**
+- Identify all figures, diagrams, tables, images mentioned
+- Note figure numbers (e.g., "Figure 1.3")
+- Describe what each visual depicts
+- Explain pedagogical purpose (why is this visual included?)
+
+**TEMPORAL ANALYSIS:**
+- **Historical Examples**: Identify examples from the past
+  * Note time period (e.g., "1920s", "17th century")
+  * Assess if still relevant: Does this provide valuable historical context?
+
+- **Contemporary Examples**: Identify current/modern references
+  * Note when current (year or approximate date)
+  * Assess update priority:
+    - LOW: Timeless or slow-changing (e.g., "newspapers", "television")
+    - MEDIUM: May need updating within 5-10 years (e.g., "Instagram", "streaming services")
+    - HIGH: Rapidly dated (e.g., specific politicians, recent events, tech platforms)
+
+- **Temporal Range**: Overall span (e.g., "1890s-2025")
+
+**DISCUSSION QUESTIONS:**
+- Identify potential questions for end-of-chapter discussion
+- These may be explicitly stated or implied by chapter content
+- Should probe deep understanding, not just recall
+
+Extract EVERYTHING - comprehensive pedagogical support documentation.
+"""
+
+
+PHASE_5_SCHEMA_GUIDE = """
+=== SCHEMA FIELD GUIDE ===
+
+**"learning_objectives"** - Array of strings:
+  • Extract verbatim from chapter (usually at beginning)
+  • Example: "Differentiate between the idea of a 'communication receiver' and a 'communication participant.'"
+  • If no explicit objectives, leave as empty array []
+
+**"student_activities"** - Array of activity objects:
+  • activity_type: "reflection", "observation", "experiment", "discussion", "diary", "analysis", etc.
+  • description: Full text of what students are asked to do
+  • location: Exact section/paragraph (e.g., "YOUR COMMUNICATION ENVIRONMENT, BYLINE exercise")
+
+**"assessment_questions"** - Array of question objects:
+  • question: Full question text
+  • question_type: "multiple choice", "true/false", "short answer", "matching"
+  • location: Section where question appears
+
+**"chapter_summary"** - String:
+  • Extract full summary from chapter end
+  • Often labeled "SUMMARY", "KEY TAKEAWAYS", or "IMPLICATIONS"
+  • If no formal summary, use null
+
+**"review_sections"** - Array of review objects:
+  • content: The review statement
+  • location: Where it appears in chapter
+  • Example: "REVIEW — Americans are heavy media consumers..."
+
+**"visual_media_references"** - Array of visual objects:
+  • reference: Figure number or name (e.g., "Figure 1.3", "Peter-Paul goblet illusion")
+  • description: What the visual shows
+  • pedagogical_purpose: Why this visual aids learning
+
+**"temporal_analysis"** - Object:
+  • historical_examples: Array of past examples
+    - example: Name/description
+    - time_period: When it occurred
+    - still_relevant: true/false
+
+  • contemporary_examples: Array of current examples
+    - example: Name/description
+    - current_as_of: Year or date
+    - update_priority: "low", "medium", "high"
+
+  • temporal_range: Overall span (e.g., "1890-2025")
+
+**"potential_discussion_questions"** - Array of strings:
+  • Questions suitable for end-of-chapter discussion
+  • Should require critical thinking and application
+
+**NULL USAGE:**
+- Use empty arrays [] if no items exist for that category
+- Use null for chapter_summary if none present
+- All other fields should be populated with content if ANY relevant material exists
+"""
+
+
+PHASE_5_EXAMPLE = """{
+  "learning_objectives": [
+    "Differentiate between the idea of a 'communication receiver' and a 'communication participant.'",
+    "Describe the four 'worlds' in which each of us lives.",
+    "Explain the communication mosaic.",
+    "Explain communication models and their value.",
+    "Describe some of the major reasons people process information as they do."
+  ],
+  "student_activities": [
+    {
+      "activity_type": "observation",
+      "description": "Estimate the amount of time you spend with each medium of communication on the average day. Then, keep a diary for a few days, trying to follow your normal routine otherwise. In your diary, keep an accurate record of the frequency and amount of time you are exposed to radio, newspapers, television, books, and other media. With this diary record, determine the accuracy of your original estimates.",
+      "location": "YOUR COMMUNICATION ENVIRONMENT, first BYLINE"
+    },
+    {
+      "activity_type": "reflection",
+      "description": "Describe each of your 'four worlds' in your own words. It may be helpful, in doing this, to use some real example other than war: perhaps college athletics, or Russia's or America's space program.",
+      "location": "The Uniqueness of Your Worlds, BYLINE"
+    }
+  ],
+  "assessment_questions": [
+    {
+      "question": "On average, about what percentage of their leisure time do Americans spend with the mass media?",
+      "question_type": "multiple choice",
+      "location": "KNOWLEDGE CHECK: THE IMPORTANCE OF COMMUNICATION IN OUR LIVES"
+    },
+    {
+      "question": "The First World is the world in your head.",
+      "question_type": "true/false",
+      "location": "KNOWLEDGE CHECK: YOUR COMMUNICATION ENVIRONMENT"
+    }
+  ],
+  "chapter_summary": "The mosaic model gives us not simply a different way of thinking about communication, but a different definition of communication. Since meaning is not in words or pictures, objects or actions, but rather in people, communication is something that takes place when a person constructs meanings from words, pictures, objects, or actions that have symbolic value for him or her...",
+  "review_sections": [
+    {
+      "content": "Americans are heavy media consumers. On average, 80 percent of their leisure time is spent with media, and media use accompanies much of their work and other activities. This totals more than 13 hours per day for the average person.",
+      "location": "THE IMPORTANCE OF COMMUNICATION IN OUR LIVES"
+    },
+    {
+      "content": "Your reality, the world in which you believe, the world to which you respond when you vote or buy, cheer or cry, is the world you constructed in your head, your fourth world.",
+      "location": "The Worlds Outside and the World in Your Head"
+    }
+  ],
+  "visual_media_references": [
+    {
+      "reference": "Figure 1.3",
+      "description": "Diagram showing mass communication as transmission of identical meanings to anonymous masses",
+      "pedagogical_purpose": "Illustrates the limitations of the traditional source-message-receiver model"
+    },
+    {
+      "reference": "Figure 1.4",
+      "description": "Westley-MacLean model showing gatekeepers and feedback loops",
+      "pedagogical_purpose": "Demonstrates the complexity of mass communication with multiple interpreters/translators"
+    },
+    {
+      "reference": "Peter-Paul goblet illusion",
+      "description": "Optical illusion showing either a goblet or two faces depending on figure-ground perception",
+      "pedagogical_purpose": "Demonstrates context as figure-ground phenomenon and selective attention"
+    }
+  ],
+  "temporal_analysis": {
+    "historical_examples": [
+      {
+        "example": "Ridgewood, New Jersey TV abstinence experiment",
+        "time_period": "Pre-internet era",
+        "still_relevant": true
+      },
+      {
+        "example": "Walter Lippmann's concept of 'the world in our heads'",
+        "time_period": "1920s",
+        "still_relevant": true
+      },
+      {
+        "example": "M*A*S*H television series",
+        "time_period": "1970s-1980s",
+        "still_relevant": true
+      }
+    ],
+    "contemporary_examples": [
+      {
+        "example": "TikTok and Instagram social media platforms",
+        "current_as_of": "2025",
+        "update_priority": "medium"
+      },
+      {
+        "example": "'iPad kids' phenomenon",
+        "current_as_of": "2020s",
+        "update_priority": "medium"
+      },
+      {
+        "example": "HBO's Chernobyl miniseries (2019)",
+        "current_as_of": "2019",
+        "update_priority": "low"
+      },
+      {
+        "example": "Serial podcast and Making a Murderer",
+        "current_as_of": "2014-2015",
+        "update_priority": "low"
+      }
+    ],
+    "temporal_range": "1890s-2025"
+  },
+  "potential_discussion_questions": [
+    "How has the rise of social media changed the way we construct our 'fourth world' compared to when this theory was first developed?",
+    "In what ways do recommendation algorithms act as modern 'gatekeepers' in the Westley-MacLean model?",
+    "How might the concept of 'information overload' be different today compared to when William James discussed it in 1890?",
+    "What are the ethical implications of media platforms using our 'scripts and schemata' to target content to us?"
+  ]
 }"""
 
 
@@ -1179,5 +1446,39 @@ List ALL related chapters you can infer from the analysis above.
 
     return {
         "system_prompt": PHASE_4_SYSTEM_PROMPT,
+        "user_prompt": user_prompt
+    }
+
+
+def get_phase_5_prompts(chapter_text: str) -> Dict[str, str]:
+    """Get system and user prompts for Phase 5 - Pedagogical Mapping."""
+    user_prompt = f"""{PHASE_5_READING_STRATEGY}
+
+{PHASE_5_SCHEMA_GUIDE}
+
+=== EXAMPLE OUTPUT (for reference) ===
+{PHASE_5_EXAMPLE}
+
+=== YOUR TASK ===
+
+Extract ALL pedagogical elements from this chapter:
+- Learning objectives (if stated at beginning)
+- Student activities (BYLINE exercises, experiments, observations)
+- Assessment questions (KNOWLEDGE CHECK sections)
+- Chapter summary (end-of-chapter summary)
+- Review sections (REVIEW boxes throughout)
+- Visual/media references (figures, diagrams, tables)
+- Temporal analysis (historical vs. contemporary examples, update priorities)
+- Potential discussion questions (for end-of-chapter reflection)
+
+CHAPTER TEXT:
+{chapter_text}
+
+Respond with valid JSON matching the pedagogical_mapping schema structure shown in the example.
+Extract EVERY pedagogical element - be comprehensive and thorough.
+"""
+
+    return {
+        "system_prompt": PHASE_5_SYSTEM_PROMPT,
         "user_prompt": user_prompt
     }

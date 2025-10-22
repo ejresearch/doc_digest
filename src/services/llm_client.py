@@ -1,12 +1,13 @@
 from typing import Dict, Optional, Any
 from ..utils.logging_config import get_logger
 from .openai_client import call_openai_structured, LLMConfigurationError, LLMAPIError
-from ..models import ComprehensionPass, StructuralOutline, PropositionalExtraction, AnalyticalMetadata
+from ..models import ComprehensionPass, StructuralOutline, PropositionalExtraction, AnalyticalMetadata, PedagogicalMapping
 from .prompts import (
     get_phase_1_prompts,
     get_phase_2_prompts,
     get_phase_3_prompts,
-    get_phase_4_prompts
+    get_phase_4_prompts,
+    get_phase_5_prompts
 )
 
 logger = get_logger(__name__)
@@ -17,6 +18,7 @@ PHASE_1_TEMPERATURE = 0.15  # More deterministic for comprehension
 PHASE_2_TEMPERATURE = 0.2   # Structured outline
 PHASE_3_TEMPERATURE = 0.2   # Propositional extraction
 PHASE_4_TEMPERATURE = 0.25  # Slightly more creative for metadata
+PHASE_5_TEMPERATURE = 0.15  # Precise extraction of pedagogical elements
 
 # Environment variable to enable/disable actual LLM calls
 import os
@@ -239,5 +241,64 @@ def _stub_analytical_metadata() -> Dict[str, Any]:
             "related_chapters": [],
             "grade_level_or_audience": None,
             "spiral_position": None
+        }
+    }
+
+
+def extract_pedagogical_mapping(text: str) -> Dict[str, Any]:
+    """
+    Phase 5: Extract pedagogical mapping and learning support elements.
+
+    Args:
+        text: The chapter text to analyze
+
+    Returns:
+        Dictionary with 'pedagogical_mapping' key containing pedagogical elements
+
+    Raises:
+        LLMConfigurationError: If OpenAI API is not configured
+        LLMAPIError: If API call fails
+    """
+    logger.info(f"Phase 5: Extracting pedagogical mapping (text length: {len(text)} chars)")
+
+    if not USE_ACTUAL_LLM:
+        logger.warning("USE_ACTUAL_LLM=false - returning stub data")
+        return _stub_pedagogical_mapping()
+
+    # Get comprehensive prompts from prompts module
+    prompts = get_phase_5_prompts(text)
+
+    try:
+        response = call_openai_structured(
+            system_prompt=prompts["system_prompt"],
+            user_prompt=prompts["user_prompt"],
+            temperature=PHASE_5_TEMPERATURE,
+            json_schema=PedagogicalMapping.model_json_schema(),
+            max_tokens=16000  # Higher limit for comprehensive pedagogical extraction
+        )
+        logger.info("Phase 5 completed successfully")
+        return {"pedagogical_mapping": response}
+
+    except (LLMConfigurationError, LLMAPIError) as e:
+        logger.error(f"Phase 5 failed: {e}")
+        raise
+
+
+def _stub_pedagogical_mapping() -> Dict[str, Any]:
+    """Return stub data for testing without LLM."""
+    return {
+        "pedagogical_mapping": {
+            "learning_objectives": [],
+            "student_activities": [],
+            "assessment_questions": [],
+            "chapter_summary": None,
+            "review_sections": [],
+            "visual_media_references": [],
+            "temporal_analysis": {
+                "historical_examples": [],
+                "contemporary_examples": [],
+                "temporal_range": None
+            },
+            "potential_discussion_questions": []
         }
     }

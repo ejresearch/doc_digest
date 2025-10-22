@@ -1,5 +1,9 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+from docx import Document
+import io
 from .services.orchestrator import digest_chapter, DigestError, ValidationError, StorageError
 from .utils.logging_config import setup_logging, get_logger
 
@@ -7,7 +11,12 @@ from .utils.logging_config import setup_logging, get_logger
 setup_logging(level="INFO")
 logger = get_logger(__name__)
 
-app = FastAPI(title="Doc Digester", version="0.1.0")
+app = FastAPI(title="Doc Digester", version="0.2.0")
+
+# Mount static files
+static_path = Path(__file__).parent.parent / "static"
+if static_path.exists():
+    app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 
 # Maximum file size: 10MB
 MAX_FILE_SIZE = 10 * 1024 * 1024
@@ -60,19 +69,37 @@ async def chapters_digest(
                 detail="File is empty"
             )
 
-        # Decode content
-        try:
-            text = content.decode('utf-8')
-        except UnicodeDecodeError:
-            logger.warning("UTF-8 decode failed, attempting with latin-1")
+        # Extract text based on file type
+        filename_lower = file.filename.lower() if file.filename else ""
+
+        if filename_lower.endswith('.docx'):
+            # Handle .docx files using python-docx
+            logger.info("Processing .docx file")
             try:
-                text = content.decode('latin-1')
-            except UnicodeDecodeError as e:
-                logger.error(f"Failed to decode file: {e}")
+                doc = Document(io.BytesIO(content))
+                paragraphs = [para.text for para in doc.paragraphs if para.text.strip()]
+                text = '\n'.join(paragraphs)
+                logger.info(f"Extracted {len(paragraphs)} paragraphs from .docx")
+            except Exception as e:
+                logger.error(f"Failed to extract text from .docx: {e}")
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Unable to decode file. Please ensure it's a valid text file."
+                    detail="Unable to process .docx file. Please ensure it's a valid Word document."
                 )
+        else:
+            # Handle plain text files
+            try:
+                text = content.decode('utf-8')
+            except UnicodeDecodeError:
+                logger.warning("UTF-8 decode failed, attempting with latin-1")
+                try:
+                    text = content.decode('latin-1')
+                except UnicodeDecodeError as e:
+                    logger.error(f"Failed to decode file: {e}")
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Unable to decode file. Please ensure it's a valid text file."
+                    )
 
         if len(text.strip()) < 100:
             logger.warning(f"Text too short: {len(text)} characters")
@@ -131,6 +158,14 @@ async def chapters_digest(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred during processing"
         )
+
+@app.get("/")
+async def root():
+    """Serve the web interface."""
+    index_path = Path(__file__).parent.parent / "static" / "index.html"
+    if index_path.exists():
+        return FileResponse(str(index_path))
+    return {"message": "Doc Digester API", "version": "0.2.0"}
 
 @app.get("/health")
 async def health_check():

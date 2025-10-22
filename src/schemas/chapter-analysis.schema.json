@@ -193,7 +193,101 @@
     },
     "pedagogical_mapping": {
       "type": "object",
-      "description": "Optional pedagogical strategies and mappings"
+      "description": "Pedagogical elements and learning support",
+      "properties": {
+        "learning_objectives": {
+          "type": "array",
+          "description": "Explicit learning objectives or goals stated in the chapter",
+          "items": { "type": "string" }
+        },
+        "student_activities": {
+          "type": "array",
+          "description": "Interactive exercises, BYLINE activities, or hands-on tasks for students",
+          "items": {
+            "type": "object",
+            "properties": {
+              "activity_type": { "type": "string", "description": "Type of activity (e.g., 'reflection', 'observation', 'experiment', 'discussion')" },
+              "description": { "type": "string", "description": "What the activity asks students to do" },
+              "location": { "type": "string", "description": "Where in the chapter this appears" }
+            }
+          }
+        },
+        "assessment_questions": {
+          "type": "array",
+          "description": "Knowledge check questions, quizzes, or self-assessment prompts",
+          "items": {
+            "type": "object",
+            "properties": {
+              "question": { "type": "string" },
+              "question_type": { "type": "string", "description": "Type of question (e.g., 'multiple choice', 'true/false', 'short answer')" },
+              "location": { "type": "string" }
+            }
+          }
+        },
+        "chapter_summary": {
+          "type": "string",
+          "description": "Summary or key takeaways provided at chapter end"
+        },
+        "review_sections": {
+          "type": "array",
+          "description": "REVIEW boxes or summary statements throughout the chapter",
+          "items": {
+            "type": "object",
+            "properties": {
+              "content": { "type": "string", "description": "The review statement or summary" },
+              "location": { "type": "string" }
+            }
+          }
+        },
+        "visual_media_references": {
+          "type": "array",
+          "description": "Figures, diagrams, images, or other visual content referenced",
+          "items": {
+            "type": "object",
+            "properties": {
+              "reference": { "type": "string", "description": "Figure number or description (e.g., 'Figure 1.3', 'Peter-Paul goblet illusion')" },
+              "description": { "type": "string", "description": "What the visual depicts" },
+              "pedagogical_purpose": { "type": "string", "description": "Why this visual is included" }
+            }
+          }
+        },
+        "temporal_analysis": {
+          "type": "object",
+          "description": "Analysis of the temporal range of examples and content currency",
+          "properties": {
+            "historical_examples": {
+              "type": "array",
+              "description": "Examples from the past that provide historical context",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "example": { "type": "string" },
+                  "time_period": { "type": "string" },
+                  "still_relevant": { "type": "boolean", "description": "Is this example still pedagogically valuable?" }
+                }
+              }
+            },
+            "contemporary_examples": {
+              "type": "array",
+              "description": "Current/modern examples that may need future updating",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "example": { "type": "string" },
+                  "current_as_of": { "type": "string", "description": "Year or date this example is current" },
+                  "update_priority": { "type": "string", "enum": ["low", "medium", "high"], "description": "How urgently this may need updating" }
+                }
+              }
+            },
+            "temporal_range": { "type": "string", "description": "Overall time span covered by examples (e.g., '1920s-2025')" }
+          }
+        },
+        "potential_discussion_questions": {
+          "type": "array",
+          "description": "Additional discussion questions for end-of-chapter reflection",
+          "items": { "type": "string" }
+        }
+      }
     }
   },
   "required": ["comprehension_pass", "structural_outline", "propositional_extraction"],

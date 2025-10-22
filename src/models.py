@@ -96,6 +96,51 @@ class AnalyticalMetadata(BaseModel):
     grade_level_or_audience: Optional[str] = None
     spiral_position: Optional[str] = None
 
+# -------- Pedagogical Mapping --------
+class StudentActivity(BaseModel):
+    activity_type: Optional[str] = None
+    description: Optional[str] = None
+    location: Optional[str] = None
+
+class AssessmentQuestion(BaseModel):
+    question: Optional[str] = None
+    question_type: Optional[str] = None
+    location: Optional[str] = None
+
+class ReviewSection(BaseModel):
+    content: Optional[str] = None
+    location: Optional[str] = None
+
+class VisualMediaReference(BaseModel):
+    reference: Optional[str] = None
+    description: Optional[str] = None
+    pedagogical_purpose: Optional[str] = None
+
+class HistoricalExample(BaseModel):
+    example: Optional[str] = None
+    time_period: Optional[str] = None
+    still_relevant: Optional[bool] = None
+
+class ContemporaryExample(BaseModel):
+    example: Optional[str] = None
+    current_as_of: Optional[str] = None
+    update_priority: Optional[Literal["low", "medium", "high"]] = None
+
+class TemporalAnalysis(BaseModel):
+    historical_examples: List[HistoricalExample] = []
+    contemporary_examples: List[ContemporaryExample] = []
+    temporal_range: Optional[str] = None
+
+class PedagogicalMapping(BaseModel):
+    learning_objectives: List[str] = []
+    student_activities: List[StudentActivity] = []
+    assessment_questions: List[AssessmentQuestion] = []
+    chapter_summary: Optional[str] = None
+    review_sections: List[ReviewSection] = []
+    visual_media_references: List[VisualMediaReference] = []
+    temporal_analysis: Optional[TemporalAnalysis] = None
+    potential_discussion_questions: List[str] = []
+
 # -------- Master Document --------
 class ChapterAnalysis(BaseModel):
     system_metadata: Optional[SystemMetadata] = None
@@ -103,3 +148,4 @@ class ChapterAnalysis(BaseModel):
     structural_outline: StructuralOutline
     propositional_extraction: PropositionalExtraction
     analytical_metadata: Optional[AnalyticalMetadata] = None
+    pedagogical_mapping: Optional[PedagogicalMapping] = None
