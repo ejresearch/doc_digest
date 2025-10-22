@@ -36,6 +36,13 @@
 
             <!-- Upload Section -->
             <section class="upload-section" id="uploadSection">
+                <!-- Load Existing Analysis -->
+                <div class="upload-card" style="margin-bottom: 24px;">
+                    <h2>Load Existing Analysis</h2>
+                    <p class="subtitle">View previously analyzed chapters</p>
+                    <div id="existingChapters" style="display: grid; gap: 12px;"></div>
+                </div>
+
                 <div class="upload-card">
                     <h2>Upload Textbook Chapter</h2>
                     <p class="subtitle">5-phase AI analysis with GPT-4o</p>
@@ -155,10 +162,19 @@
                 <!-- Tab Navigation -->
                 <div class="tabs">
                     <button class="tab active" data-tab="overview">Overview</button>
-                    <button class="tab" data-tab="pedagogical">Pedagogical</button>
-                    <button class="tab" data-tab="structure">Structure</button>
+                    <button class="tab" data-tab="metadata">Metadata</button>
+                    <button class="tab" data-tab="comprehension">Comprehension</button>
+                    <button class="tab" data-tab="outline">Outline</button>
                     <button class="tab" data-tab="propositions">Propositions</button>
-                    <button class="tab" data-tab="temporal">Temporal Analysis</button>
+                    <button class="tab" data-tab="analytics">Analytics</button>
+                    <button class="tab" data-tab="pedagogy">Pedagogy</button>
+                    <button class="tab" data-tab="activities">Student Activities</button>
+                    <button class="tab" data-tab="questions">Questions</button>
+                    <button class="tab" data-tab="review">Review</button>
+                    <button class="tab" data-tab="visual">Visual Media</button>
+                    <button class="tab" data-tab="temporal">Temporal</button>
+                    <button class="tab" data-tab="historical">Historical</button>
+                    <button class="tab" data-tab="contemporary">Contemporary</button>
                     <button class="tab" data-tab="raw">Raw JSON</button>
                 </div>
 
@@ -182,37 +198,43 @@
                         </div>
                     </div>
 
-                    <!-- Pedagogical Tab -->
-                    <div class="tab-panel" id="pedagogical">
-                        <div class="pedagogical-content">
-                            <div class="section-card">
-                                <h3>📋 Learning Objectives</h3>
-                                <div id="learningObjectives"></div>
-                            </div>
-                            <div class="section-card">
-                                <h3>✏️ Student Activities</h3>
-                                <div id="studentActivities"></div>
-                            </div>
-                            <div class="section-card">
-                                <h3>✅ Assessment Questions</h3>
-                                <div id="assessmentQuestions"></div>
-                            </div>
-                            <div class="section-card">
-                                <h3>🖼️ Visual Media References</h3>
-                                <div id="visualMedia"></div>
-                            </div>
-                            <div class="section-card">
-                                <h3>💬 Discussion Questions</h3>
-                                <div id="discussionQuestions"></div>
-                            </div>
+                    <!-- Metadata Tab -->
+                    <div class="tab-panel" id="metadata">
+                        <div class="section-card">
+                            <h3>System Metadata</h3>
+                            <div id="metadataContent"></div>
                         </div>
                     </div>
 
-                    <!-- Structure Tab -->
-                    <div class="tab-panel" id="structure">
+                    <!-- Comprehension Tab -->
+                    <div class="tab-panel" id="comprehension">
                         <div class="section-card">
-                            <h3>Chapter Structure</h3>
-                            <div id="structureOutline"></div>
+                            <h3>Who</h3>
+                            <div id="comprehensionWho"></div>
+                        </div>
+                        <div class="section-card">
+                            <h3>What</h3>
+                            <div id="comprehensionWhat"></div>
+                        </div>
+                        <div class="section-card">
+                            <h3>When</h3>
+                            <div id="comprehensionWhen"></div>
+                        </div>
+                        <div class="section-card">
+                            <h3>Why</h3>
+                            <div id="comprehensionWhy"></div>
+                        </div>
+                        <div class="section-card">
+                            <h3>How</h3>
+                            <div id="comprehensionHow"></div>
+                        </div>
+                    </div>
+
+                    <!-- Outline Tab -->
+                    <div class="tab-panel" id="outline">
+                        <div class="section-card">
+                            <h3>Structural Outline</h3>
+                            <div id="outlineContent"></div>
                         </div>
                     </div>
 
@@ -224,22 +246,84 @@
                         </div>
                     </div>
 
-                    <!-- Temporal Analysis Tab -->
+                    <!-- Analytics Tab -->
+                    <div class="tab-panel" id="analytics">
+                        <div class="section-card">
+                            <h3>Analytical Metadata</h3>
+                            <div id="analyticsContent"></div>
+                        </div>
+                    </div>
+
+                    <!-- Pedagogy Tab -->
+                    <div class="tab-panel" id="pedagogy">
+                        <div class="section-card">
+                            <h3>📋 Learning Objectives</h3>
+                            <div id="pedagogyObjectives"></div>
+                        </div>
+                        <div class="section-card">
+                            <h3>📝 Chapter Summary</h3>
+                            <div id="pedagogySummary"></div>
+                        </div>
+                        <div class="section-card">
+                            <h3>💬 Discussion Questions</h3>
+                            <div id="pedagogyDiscussion"></div>
+                        </div>
+                    </div>
+
+                    <!-- Student Activities Tab -->
+                    <div class="tab-panel" id="activities">
+                        <div class="section-card">
+                            <h3>✏️ Student Activities</h3>
+                            <div id="activitiesContent"></div>
+                        </div>
+                    </div>
+
+                    <!-- Questions Tab -->
+                    <div class="tab-panel" id="questions">
+                        <div class="section-card">
+                            <h3>✅ Assessment Questions</h3>
+                            <div id="questionsContent"></div>
+                        </div>
+                    </div>
+
+                    <!-- Review Tab -->
+                    <div class="tab-panel" id="review">
+                        <div class="section-card">
+                            <h3>Review Sections</h3>
+                            <div id="reviewContent"></div>
+                        </div>
+                    </div>
+
+                    <!-- Visual Media Tab -->
+                    <div class="tab-panel" id="visual">
+                        <div class="section-card">
+                            <h3>🖼️ Visual Media References</h3>
+                            <div id="visualContent"></div>
+                        </div>
+                    </div>
+
+                    <!-- Temporal Tab -->
                     <div class="tab-panel" id="temporal">
-                        <div class="temporal-content">
-                            <div class="section-card">
-                                <h3>📅 Historical Examples</h3>
-                                <div id="historicalExamples"></div>
-                            </div>
-                            <div class="section-card">
-                                <h3>🔄 Contemporary Examples</h3>
-                                <p class="card-subtitle">May need future updates</p>
-                                <div id="contemporaryExamples"></div>
-                            </div>
-                            <div class="section-card">
-                                <h3>⏳ Temporal Range</h3>
-                                <div id="temporalRange"></div>
-                            </div>
+                        <div class="section-card">
+                            <h3>⏳ Temporal Range</h3>
+                            <div id="temporalContent"></div>
+                        </div>
+                    </div>
+
+                    <!-- Historical Tab -->
+                    <div class="tab-panel" id="historical">
+                        <div class="section-card">
+                            <h3>📅 Historical Examples</h3>
+                            <div id="historicalContent"></div>
+                        </div>
+                    </div>
+
+                    <!-- Contemporary Tab -->
+                    <div class="tab-panel" id="contemporary">
+                        <div class="section-card">
+                            <h3>🔄 Contemporary Examples</h3>
+                            <p class="card-subtitle">May need future updates</p>
+                            <div id="contemporaryContent"></div>
                         </div>
                     </div>
 

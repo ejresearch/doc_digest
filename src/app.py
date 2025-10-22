@@ -171,3 +171,48 @@ async def root():
 async def health_check():
     """Simple health check endpoint."""
     return {"status": "healthy", "service": "doc-digester"}
+
+@app.get("/chapters/list")
+async def list_chapters():
+    """List all available chapter analyses."""
+    from pathlib import Path
+    import json
+
+    data_dir = Path(__file__).parent.parent / "data" / "chapters"
+    chapters = []
+
+    if data_dir.exists():
+        for file in data_dir.glob("*.json"):
+            try:
+                with open(file, 'r') as f:
+                    data = json.load(f)
+                    meta = data.get('system_metadata', {})
+                    chapters.append({
+                        'filename': file.name,
+                        'chapter_id': meta.get('chapter_id'),
+                        'version': meta.get('version'),
+                        'source_text': meta.get('source_text'),
+                        'created_at': meta.get('created_at')
+                    })
+            except Exception:
+                continue
+
+    return {"chapters": chapters}
+
+@app.get("/chapters/{filename}")
+async def get_chapter(filename: str):
+    """Get a specific chapter analysis by filename."""
+    from pathlib import Path
+    import json
+
+    data_dir = Path(__file__).parent.parent / "data" / "chapters"
+    file_path = data_dir / filename
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Chapter not found")
+
+    try:
+        with open(file_path, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load chapter: {str(e)}")

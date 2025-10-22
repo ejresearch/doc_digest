@@ -12,6 +12,58 @@ const resultsSection = document.getElementById('resultsSection');
 const newAnalysisBtn = document.getElementById('newAnalysisBtn');
 const copyJsonBtn = document.getElementById('copyJsonBtn');
 
+// Load existing chapters on page load
+async function loadExistingChapters() {
+    try {
+        const response = await fetch('/chapters/list');
+        const data = await response.json();
+        const container = document.getElementById('existingChapters');
+
+        if (data.chapters && data.chapters.length > 0) {
+            container.innerHTML = data.chapters.map(chapter => `
+                <div style="padding: 16px; background: var(--gray-50); border-radius: 8px; border: 1px solid var(--gray-200); cursor: pointer; transition: all 0.2s ease;"
+                     onclick="loadChapter('${chapter.filename}')"
+                     onmouseover="this.style.background='white'; this.style.borderColor='var(--primary)'"
+                     onmouseout="this.style.background='var(--gray-50)'; this.style.borderColor='var(--gray-200)'">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div>
+                            <strong style="color: var(--primary);">${chapter.chapter_id || 'Unknown'}</strong>
+                            <p style="font-size: 14px; color: var(--gray-600); margin-top: 4px;">${chapter.source_text || 'No source'}</p>
+                            <p style="font-size: 12px; color: var(--gray-600); margin-top: 4px;">Version: ${chapter.version || 'N/A'}</p>
+                        </div>
+                        <span style="background: var(--primary); color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">View</span>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<p style="color: var(--gray-600); text-align: center; padding: 24px;">No existing analyses found</p>';
+        }
+    } catch (error) {
+        console.error('Error loading chapters:', error);
+        document.getElementById('existingChapters').innerHTML = '<p style="color: var(--danger); text-align: center;">Failed to load existing chapters</p>';
+    }
+}
+
+// Load a specific chapter by filename
+async function loadChapter(filename) {
+    try {
+        const response = await fetch(`/chapters/${filename}`);
+        if (!response.ok) {
+            throw new Error('Failed to load chapter');
+        }
+        const data = await response.json();
+        currentResults = data;
+        showResults(data);
+    } catch (error) {
+        alert(`Error loading chapter: ${error.message}`);
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    loadExistingChapters();
+});
+
 // File Upload Handling
 dropZone.addEventListener('click', () => fileInput.click());
 
@@ -94,10 +146,19 @@ function showResults(data) {
     resultsSection.classList.remove('hidden');
 
     renderOverview(data);
-    renderPedagogical(data);
-    renderStructure(data);
+    renderMetadata(data);
+    renderComprehension(data);
+    renderOutline(data);
     renderPropositions(data);
+    renderAnalytics(data);
+    renderPedagogy(data);
+    renderActivities(data);
+    renderQuestions(data);
+    renderReview(data);
+    renderVisual(data);
     renderTemporal(data);
+    renderHistorical(data);
+    renderContemporary(data);
     renderRawJson(data);
 }
 
@@ -140,12 +201,226 @@ function renderOverview(data) {
     }
 }
 
-// Render Pedagogical Tab
-function renderPedagogical(data) {
+// Render Metadata Tab
+function renderMetadata(data) {
+    const metadata = document.getElementById('metadataContent');
+    const meta = data.system_metadata || {};
+
+    metadata.innerHTML = `
+        <div style="display: grid; gap: 16px;">
+            <div class="list-item">
+                <strong>Chapter ID:</strong>
+                <p style="margin-top: 4px;">${meta.chapter_id || 'N/A'}</p>
+            </div>
+            <div class="list-item">
+                <strong>File Name:</strong>
+                <p style="margin-top: 4px;">${meta.file_name || 'N/A'}</p>
+            </div>
+            <div class="list-item">
+                <strong>Author/Editor:</strong>
+                <p style="margin-top: 4px;">${meta.author_or_editor || 'Unknown'}</p>
+            </div>
+            <div class="list-item">
+                <strong>Version:</strong>
+                <p style="margin-top: 4px;">${meta.version || 'N/A'}</p>
+            </div>
+            <div class="list-item">
+                <strong>Created At:</strong>
+                <p style="margin-top: 4px;">${meta.created_at || 'N/A'}</p>
+            </div>
+            <div class="list-item">
+                <strong>Source Text:</strong>
+                <p style="margin-top: 4px;">${meta.source_text || 'N/A'}</p>
+            </div>
+        </div>
+    `;
+}
+
+// Render Comprehension Tab
+function renderComprehension(data) {
+    const comp = data.comprehension_pass || {};
+
+    // Who
+    const who = document.getElementById('comprehensionWho');
+    if (comp.who && comp.who.length > 0) {
+        who.innerHTML = comp.who.map(item => `
+            <div class="list-item" style="margin-bottom: 12px;">
+                <strong>${item.entity}</strong>
+                ${item.role_or_function ? `<p style="margin-top: 4px;"><em>Role:</em> ${item.role_or_function}</p>` : ''}
+                ${item.significance_in_chapter ? `<p style="margin-top: 4px;"><em>Significance:</em> ${item.significance_in_chapter}</p>` : ''}
+                ${item.evidence_pointer ? `<p style="margin-top: 4px; font-size: 13px; color: var(--gray-600);">📍 ${item.evidence_pointer}</p>` : ''}
+            </div>
+        `).join('');
+    } else {
+        who.innerHTML = '<p style="color: var(--gray-600);">No entities found</p>';
+    }
+
+    // What
+    const what = document.getElementById('comprehensionWhat');
+    if (comp.what && comp.what.length > 0) {
+        what.innerHTML = comp.what.map(item => `
+            <div class="list-item" style="margin-bottom: 12px;">
+                <strong>${item.concept_or_topic}</strong>
+                ${item.definition_or_description ? `<p style="margin-top: 4px;">${item.definition_or_description}</p>` : ''}
+                ${item.importance ? `<p style="margin-top: 4px;"><em>Importance:</em> ${item.importance}</p>` : ''}
+                ${item.evidence_pointer ? `<p style="margin-top: 4px; font-size: 13px; color: var(--gray-600);">📍 ${item.evidence_pointer}</p>` : ''}
+            </div>
+        `).join('');
+    } else {
+        what.innerHTML = '<p style="color: var(--gray-600);">No concepts found</p>';
+    }
+
+    // When
+    const when = document.getElementById('comprehensionWhen');
+    const whenBlock = comp.when || {};
+    when.innerHTML = `
+        <div class="list-item" style="margin-bottom: 12px;">
+            <strong>Historical/Cultural Context:</strong>
+            <p style="margin-top: 4px;">${whenBlock.historical_or_cultural_context || 'N/A'}</p>
+        </div>
+        <div class="list-item" style="margin-bottom: 12px;">
+            <strong>Chronological Sequence:</strong>
+            <p style="margin-top: 4px;">${whenBlock.chronological_sequence_within_course || 'N/A'}</p>
+        </div>
+        <div class="list-item">
+            <strong>Moment of Presentation:</strong>
+            <p style="margin-top: 4px;">${whenBlock.moment_of_presentation_to_reader || 'N/A'}</p>
+        </div>
+    `;
+
+    // Why
+    const why = document.getElementById('comprehensionWhy');
+    const whyBlock = comp.why || {};
+    why.innerHTML = `
+        <div class="list-item" style="margin-bottom: 12px;">
+            <strong>Intellectual Value:</strong>
+            <p style="margin-top: 4px;">${whyBlock.intellectual_value || 'N/A'}</p>
+        </div>
+        <div class="list-item" style="margin-bottom: 12px;">
+            <strong>Knowledge-Based Value:</strong>
+            <p style="margin-top: 4px;">${whyBlock.knowledge_based_value || 'N/A'}</p>
+        </div>
+        <div class="list-item">
+            <strong>Moral/Philosophical Significance:</strong>
+            <p style="margin-top: 4px;">${whyBlock.moral_or_philosophical_significance || 'N/A'}</p>
+        </div>
+    `;
+
+    // How
+    const how = document.getElementById('comprehensionHow');
+    const howBlock = comp.how || {};
+    how.innerHTML = `
+        <div class="list-item" style="margin-bottom: 12px;">
+            <strong>Presentation Style:</strong>
+            <p style="margin-top: 4px;">${howBlock.presentation_style || 'N/A'}</p>
+        </div>
+        <div class="list-item" style="margin-bottom: 12px;">
+            <strong>Rhetorical Approach:</strong>
+            <p style="margin-top: 4px;">${howBlock.rhetorical_approach || 'N/A'}</p>
+        </div>
+        <div class="list-item">
+            <strong>Recommended Student Strategy:</strong>
+            <p style="margin-top: 4px;">${howBlock.recommended_student_strategy || 'N/A'}</p>
+        </div>
+    `;
+}
+
+// Render Outline Tab
+function renderOutline(data) {
+    const outline = document.getElementById('outlineContent');
+    const struct = data.structural_outline || {};
+    const sections = struct.outline || [];
+
+    if (sections.length > 0) {
+        outline.innerHTML = `
+            <h4 style="margin-bottom: 16px; font-size: 20px;">${struct.chapter_title || 'Chapter'}</h4>
+            ${struct.guiding_context_questions && struct.guiding_context_questions.length > 0 ? `
+                <div class="list-item" style="margin-bottom: 24px;">
+                    <strong>Guiding Questions:</strong>
+                    <ul style="margin-top: 8px; padding-left: 20px;">
+                        ${struct.guiding_context_questions.map(q => `<li style="margin-bottom: 4px;">${q}</li>`).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+            ${sections.map((section, i) => `
+                <div style="margin-bottom: 24px; padding: 16px; background: white; border-radius: 8px; border-left: 4px solid var(--primary);">
+                    <h5 style="margin-bottom: 8px; font-size: 18px;">${i + 1}. ${section.section_title}</h5>
+                    ${section.section_summary ? `<p style="font-size: 14px; color: var(--gray-600); margin-bottom: 8px;">${section.section_summary}</p>` : ''}
+                    ${section.pedagogical_purpose ? `<p style="font-size: 14px; margin-bottom: 8px;"><strong>Purpose:</strong> ${section.pedagogical_purpose}</p>` : ''}
+                    ${section.rhetorical_mode ? `<p style="font-size: 13px; color: var(--gray-600); margin-bottom: 8px;"><em>Mode: ${section.rhetorical_mode}</em></p>` : ''}
+                    ${section.subtopics && section.subtopics.length > 0 ? `
+                        <div style="margin-top: 12px;">
+                            <strong style="font-size: 14px;">Subtopics:</strong>
+                            ${section.subtopics.map(sub => `
+                                <div style="margin: 8px 0 8px 16px; padding: 8px; background: var(--gray-50); border-radius: 6px;">
+                                    <div style="font-weight: 600;">${sub.subtopic_title}</div>
+                                    ${sub.key_concepts && sub.key_concepts.length > 0 ? `
+                                        <div style="margin-top: 4px; font-size: 13px;">
+                                            <em>Key concepts:</em> ${sub.key_concepts.join(', ')}
+                                        </div>
+                                    ` : ''}
+                                    ${sub.supporting_examples && sub.supporting_examples.length > 0 ? `
+                                        <div style="margin-top: 4px; font-size: 13px;">
+                                            <em>Examples:</em> ${sub.supporting_examples.join(', ')}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('')}
+        `;
+    } else {
+        outline.innerHTML = '<p style="color: var(--gray-600);">No outline available</p>';
+    }
+}
+
+// Render Analytics Tab
+function renderAnalytics(data) {
+    const analytics = document.getElementById('analyticsContent');
+    const meta = data.analytical_metadata || {};
+
+    analytics.innerHTML = `
+        <div style="display: grid; gap: 16px;">
+            <div class="list-item">
+                <strong>Subject Domain:</strong>
+                <p style="margin-top: 4px;">${meta.subject_domain || 'N/A'}</p>
+            </div>
+            <div class="list-item">
+                <strong>Curriculum Unit:</strong>
+                <p style="margin-top: 4px;">${meta.curriculum_unit || 'N/A'}</p>
+            </div>
+            <div class="list-item">
+                <strong>Disciplinary Lens:</strong>
+                <p style="margin-top: 4px;">${meta.disciplinary_lens || 'N/A'}</p>
+            </div>
+            <div class="list-item">
+                <strong>Grade Level/Audience:</strong>
+                <p style="margin-top: 4px;">${meta.grade_level_or_audience || 'N/A'}</p>
+            </div>
+            <div class="list-item">
+                <strong>Spiral Position:</strong>
+                <p style="margin-top: 4px;">${meta.spiral_position || 'N/A'}</p>
+            </div>
+            ${meta.related_chapters && meta.related_chapters.length > 0 ? `
+                <div class="list-item">
+                    <strong>Related Chapters:</strong>
+                    <ul style="margin-top: 8px; padding-left: 20px;">
+                        ${meta.related_chapters.map(ch => `<li>${ch}</li>`).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+// Render Pedagogy Tab
+function renderPedagogy(data) {
     const ped = data.pedagogical_mapping || {};
 
     // Learning Objectives
-    const objectives = document.getElementById('learningObjectives');
+    const objectives = document.getElementById('pedagogyObjectives');
     if (ped.learning_objectives && ped.learning_objectives.length > 0) {
         objectives.innerHTML = '<ol style="padding-left: 20px;">' +
             ped.learning_objectives.map(obj => `<li style="margin-bottom: 8px;">${obj}</li>`).join('') +
@@ -154,50 +429,16 @@ function renderPedagogical(data) {
         objectives.innerHTML = '<p style="color: var(--gray-600);">No learning objectives found</p>';
     }
 
-    // Student Activities
-    const activities = document.getElementById('studentActivities');
-    if (ped.student_activities && ped.student_activities.length > 0) {
-        activities.innerHTML = ped.student_activities.map(activity => `
-            <div class="activity-item">
-                <span class="item-badge">${activity.activity_type || 'Activity'}</span>
-                <p>${activity.description || ''}</p>
-                ${activity.location ? `<p class="item-location">📍 ${activity.location}</p>` : ''}
-            </div>
-        `).join('');
+    // Chapter Summary
+    const summary = document.getElementById('pedagogySummary');
+    if (ped.chapter_summary) {
+        summary.innerHTML = `<p>${ped.chapter_summary}</p>`;
     } else {
-        activities.innerHTML = '<p style="color: var(--gray-600);">No student activities found</p>';
-    }
-
-    // Assessment Questions
-    const assessments = document.getElementById('assessmentQuestions');
-    if (ped.assessment_questions && ped.assessment_questions.length > 0) {
-        assessments.innerHTML = ped.assessment_questions.map(q => `
-            <div class="question-item">
-                <span class="item-badge">${q.question_type || 'Question'}</span>
-                <p><strong>Q:</strong> ${q.question || ''}</p>
-                ${q.location ? `<p class="item-location">📍 ${q.location}</p>` : ''}
-            </div>
-        `).join('');
-    } else {
-        assessments.innerHTML = '<p style="color: var(--gray-600);">No assessment questions found</p>';
-    }
-
-    // Visual Media
-    const visual = document.getElementById('visualMedia');
-    if (ped.visual_media_references && ped.visual_media_references.length > 0) {
-        visual.innerHTML = ped.visual_media_references.map(v => `
-            <div class="list-item">
-                <strong>${v.reference || 'Visual'}</strong>
-                <p style="margin-top: 4px; font-size: 14px;">${v.description || ''}</p>
-                ${v.pedagogical_purpose ? `<p style="margin-top: 4px; font-size: 13px; color: var(--gray-600);"><em>Purpose: ${v.pedagogical_purpose}</em></p>` : ''}
-            </div>
-        `).join('');
-    } else {
-        visual.innerHTML = '<p style="color: var(--gray-600);">No visual media references found</p>';
+        summary.innerHTML = '<p style="color: var(--gray-600);">No chapter summary available</p>';
     }
 
     // Discussion Questions
-    const discussion = document.getElementById('discussionQuestions');
+    const discussion = document.getElementById('pedagogyDiscussion');
     if (ped.potential_discussion_questions && ped.potential_discussion_questions.length > 0) {
         discussion.innerHTML = '<ol style="padding-left: 20px;">' +
             ped.potential_discussion_questions.map(q => `<li style="margin-bottom: 8px;">${q}</li>`).join('') +
@@ -207,28 +448,74 @@ function renderPedagogical(data) {
     }
 }
 
-// Render Structure Tab
-function renderStructure(data) {
-    const structure = document.getElementById('structureOutline');
-    const outline = data.structural_outline?.outline || [];
+// Render Activities Tab
+function renderActivities(data) {
+    const activities = document.getElementById('activitiesContent');
+    const acts = data.pedagogical_mapping?.student_activities || [];
 
-    if (outline.length > 0) {
-        structure.innerHTML = `
-            <h4 style="margin-bottom: 16px;">${data.structural_outline?.chapter_title || 'Chapter'}</h4>
-            ${outline.map((section, i) => `
-                <div style="margin-bottom: 24px; padding-left: 16px; border-left: 3px solid var(--primary);">
-                    <h5 style="margin-bottom: 8px;">${i + 1}. ${section.section_title}</h5>
-                    <p style="font-size: 14px; color: var(--gray-600); margin-bottom: 8px;">${section.section_summary || ''}</p>
-                    ${section.subtopics && section.subtopics.length > 0 ? `
-                        <ul style="margin-left: 20px; font-size: 14px;">
-                            ${section.subtopics.map(sub => `<li>${sub.subtopic_title}</li>`).join('')}
-                        </ul>
-                    ` : ''}
-                </div>
-            `).join('')}
-        `;
+    if (acts.length > 0) {
+        activities.innerHTML = acts.map(activity => `
+            <div class="activity-item">
+                <span class="item-badge">${activity.activity_type || 'Activity'}</span>
+                <p>${activity.description || ''}</p>
+                ${activity.location ? `<p class="item-location">📍 ${activity.location}</p>` : ''}
+            </div>
+        `).join('');
     } else {
-        structure.innerHTML = '<p style="color: var(--gray-600);">No structural outline available</p>';
+        activities.innerHTML = '<p style="color: var(--gray-600);">No student activities found</p>';
+    }
+}
+
+// Render Questions Tab
+function renderQuestions(data) {
+    const questions = document.getElementById('questionsContent');
+    const qs = data.pedagogical_mapping?.assessment_questions || [];
+
+    if (qs.length > 0) {
+        questions.innerHTML = qs.map(q => `
+            <div class="question-item">
+                <span class="item-badge">${q.question_type || 'Question'}</span>
+                <p><strong>Q:</strong> ${q.question || ''}</p>
+                ${q.location ? `<p class="item-location">📍 ${q.location}</p>` : ''}
+            </div>
+        `).join('');
+    } else {
+        questions.innerHTML = '<p style="color: var(--gray-600);">No assessment questions found</p>';
+    }
+}
+
+// Render Review Tab
+function renderReview(data) {
+    const review = document.getElementById('reviewContent');
+    const reviews = data.pedagogical_mapping?.review_sections || [];
+
+    if (reviews.length > 0) {
+        review.innerHTML = reviews.map(r => `
+            <div class="list-item" style="margin-bottom: 12px;">
+                <p>${r.content || ''}</p>
+                ${r.location ? `<p class="item-location">📍 ${r.location}</p>` : ''}
+            </div>
+        `).join('');
+    } else {
+        review.innerHTML = '<p style="color: var(--gray-600);">No review sections found</p>';
+    }
+}
+
+// Render Visual Media Tab
+function renderVisual(data) {
+    const visual = document.getElementById('visualContent');
+    const media = data.pedagogical_mapping?.visual_media_references || [];
+
+    if (media.length > 0) {
+        visual.innerHTML = media.map(v => `
+            <div class="list-item" style="margin-bottom: 12px;">
+                <strong>${v.reference || 'Visual'}</strong>
+                <p style="margin-top: 4px; font-size: 14px;">${v.description || ''}</p>
+                ${v.pedagogical_purpose ? `<p style="margin-top: 4px; font-size: 13px; color: var(--gray-600);"><em>Purpose: ${v.pedagogical_purpose}</em></p>` : ''}
+            </div>
+        `).join('');
+    } else {
+        visual.innerHTML = '<p style="color: var(--gray-600);">No visual media references found</p>';
     }
 }
 
@@ -254,14 +541,34 @@ function renderPropositions(data) {
     }
 }
 
-// Render Temporal Analysis Tab
+// Render Temporal Tab
 function renderTemporal(data) {
-    const temporal = data.pedagogical_mapping?.temporal_analysis || {};
+    const temporal = document.getElementById('temporalContent');
+    const temp = data.pedagogical_mapping?.temporal_analysis || {};
 
-    // Historical Examples
-    const historical = document.getElementById('historicalExamples');
-    if (temporal.historical_examples && temporal.historical_examples.length > 0) {
-        historical.innerHTML = temporal.historical_examples.map(ex => `
+    if (temp.temporal_range) {
+        temporal.innerHTML = `
+            <div class="list-item">
+                <p style="font-size: 18px; font-weight: 600; color: var(--primary);">
+                    ${temp.temporal_range}
+                </p>
+                <p style="font-size: 14px; color: var(--gray-600); margin-top: 8px;">
+                    This chapter spans content from ${temp.temporal_range}
+                </p>
+            </div>
+        `;
+    } else {
+        temporal.innerHTML = '<p style="color: var(--gray-600);">No temporal range information available</p>';
+    }
+}
+
+// Render Historical Tab
+function renderHistorical(data) {
+    const historical = document.getElementById('historicalContent');
+    const examples = data.pedagogical_mapping?.temporal_analysis?.historical_examples || [];
+
+    if (examples.length > 0) {
+        historical.innerHTML = examples.map(ex => `
             <div class="example-item">
                 <p><strong>${ex.example}</strong></p>
                 <p style="font-size: 14px; color: var(--gray-600); margin-top: 4px;">📅 ${ex.time_period || 'Unknown period'}</p>
@@ -275,11 +582,15 @@ function renderTemporal(data) {
     } else {
         historical.innerHTML = '<p style="color: var(--gray-600);">No historical examples found</p>';
     }
+}
 
-    // Contemporary Examples
-    const contemporary = document.getElementById('contemporaryExamples');
-    if (temporal.contemporary_examples && temporal.contemporary_examples.length > 0) {
-        contemporary.innerHTML = temporal.contemporary_examples.map(ex => `
+// Render Contemporary Tab
+function renderContemporary(data) {
+    const contemporary = document.getElementById('contemporaryContent');
+    const examples = data.pedagogical_mapping?.temporal_analysis?.contemporary_examples || [];
+
+    if (examples.length > 0) {
+        contemporary.innerHTML = examples.map(ex => `
             <div class="example-item">
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
                     <p><strong>${ex.example}</strong></p>
@@ -294,21 +605,6 @@ function renderTemporal(data) {
         `).join('');
     } else {
         contemporary.innerHTML = '<p style="color: var(--gray-600);">No contemporary examples found</p>';
-    }
-
-    // Temporal Range
-    const range = document.getElementById('temporalRange');
-    if (temporal.temporal_range) {
-        range.innerHTML = `
-            <p style="font-size: 18px; font-weight: 600; color: var(--primary);">
-                ${temporal.temporal_range}
-            </p>
-            <p style="font-size: 14px; color: var(--gray-600); margin-top: 8px;">
-                This chapter spans content from ${temporal.temporal_range}
-            </p>
-        `;
-    } else {
-        range.innerHTML = '<p style="color: var(--gray-600);">No temporal range information</p>';
     }
 }
 
