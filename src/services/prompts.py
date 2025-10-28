@@ -1340,6 +1340,15 @@ def get_phase_2_prompts(chapter_text: str, comprehension_pass: Dict[str, Any]) -
     """Get system and user prompts for Phase 2."""
     import json
 
+    # Truncate chapter text for Phase 2 to avoid timeouts with very large documents
+    # Phase 2 can work primarily from the comprehension pass + a representative sample
+    MAX_TEXT_LENGTH = 50000  # ~50K characters
+    truncated_text = chapter_text[:MAX_TEXT_LENGTH]
+    truncation_note = ""
+
+    if len(chapter_text) > MAX_TEXT_LENGTH:
+        truncation_note = f"\n\n[NOTE: Full chapter is {len(chapter_text)} characters. Showing first {MAX_TEXT_LENGTH} characters for reference. Use the comprehensive COMPREHENSION ANALYSIS above as your primary source for building the outline.]"
+
     user_prompt = f"""{PHASE_2_READING_STRATEGY}
 
 {PHASE_2_SCHEMA_GUIDE}
@@ -1355,8 +1364,8 @@ Use the comprehension analysis below for context.
 COMPREHENSION ANALYSIS:
 {json.dumps(comprehension_pass, indent=2)}
 
-CHAPTER TEXT:
-{chapter_text}
+CHAPTER TEXT (SAMPLE):
+{truncated_text}{truncation_note}
 
 Respond with valid JSON matching the schema structure shown in the example.
 Extract ALL sections, subtopics, and sub-subtopics. Be comprehensive.
@@ -1375,6 +1384,14 @@ def get_phase_3_prompts(
 ) -> Dict[str, str]:
     """Get system and user prompts for Phase 3."""
     import json
+
+    # Truncate chapter text for Phase 3 to avoid timeouts with very large documents
+    MAX_TEXT_LENGTH = 50000  # ~50K characters
+    truncated_text = chapter_text[:MAX_TEXT_LENGTH]
+    truncation_note = ""
+
+    if len(chapter_text) > MAX_TEXT_LENGTH:
+        truncation_note = f"\n\n[NOTE: Full chapter is {len(chapter_text)} characters. Showing first {MAX_TEXT_LENGTH} characters for reference. Use the COMPREHENSION ANALYSIS and STRUCTURAL OUTLINE above to ensure comprehensive proposition extraction.]"
 
     user_prompt = f"""{PHASE_3_READING_STRATEGY}
 
@@ -1395,8 +1412,8 @@ COMPREHENSION ANALYSIS:
 STRUCTURAL OUTLINE:
 {json.dumps(structural_outline, indent=2)}
 
-CHAPTER TEXT:
-{chapter_text}
+CHAPTER TEXT (SAMPLE):
+{truncated_text}{truncation_note}
 
 Respond with valid JSON matching the schema structure shown in the example.
 Extract EVERY significant proposition - be thorough and comprehensive.
@@ -1452,6 +1469,21 @@ List ALL related chapters you can infer from the analysis above.
 
 def get_phase_5_prompts(chapter_text: str) -> Dict[str, str]:
     """Get system and user prompts for Phase 5 - Pedagogical Mapping."""
+
+    # For Phase 5, pedagogical elements are often at the beginning and end
+    # So we take a sample from both areas for very large documents
+    MAX_TEXT_LENGTH = 50000  # ~50K characters
+
+    if len(chapter_text) > MAX_TEXT_LENGTH:
+        # Take first 30K and last 20K characters to capture intro objectives and end summaries
+        first_part = chapter_text[:30000]
+        last_part = chapter_text[-20000:]
+        truncated_text = first_part + "\n\n[... MIDDLE SECTION TRUNCATED ...]\n\n" + last_part
+        truncation_note = f"\n\n[NOTE: Full chapter is {len(chapter_text)} characters. Showing beginning and end sections where pedagogical elements are typically located.]"
+    else:
+        truncated_text = chapter_text
+        truncation_note = ""
+
     user_prompt = f"""{PHASE_5_READING_STRATEGY}
 
 {PHASE_5_SCHEMA_GUIDE}
@@ -1471,8 +1503,8 @@ Extract ALL pedagogical elements from this chapter:
 - Temporal analysis (historical vs. contemporary examples, update priorities)
 - Potential discussion questions (for end-of-chapter reflection)
 
-CHAPTER TEXT:
-{chapter_text}
+CHAPTER TEXT (SAMPLE):
+{truncated_text}{truncation_note}
 
 Respond with valid JSON matching the pedagogical_mapping schema structure shown in the example.
 Extract EVERY pedagogical element - be comprehensive and thorough.

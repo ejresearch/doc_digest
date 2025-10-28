@@ -1,351 +1,296 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Doc Digester - AI-Powered Textbook Analysis</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>GRAFF - Educational Chapter Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <script>
+        // Initialize theme before page load to prevent flash
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
 </head>
-<body>
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-200">
     <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <div class="logo">
-                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                    <rect width="32" height="32" rx="8" fill="url(#gradient)"/>
-                    <path d="M8 12h16M8 16h16M8 20h12" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                    <defs>
-                        <linearGradient id="gradient" x1="0" y1="0" x2="32" y2="32">
-                            <stop offset="0%" stop-color="#667eea"/>
-                            <stop offset="100%" stop-color="#764ba2"/>
-                        </linearGradient>
-                    </defs>
-                </svg>
-                <h1>Doc Digester</h1>
+    <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 transition-colors duration-200">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-500 dark:from-blue-500 dark:to-blue-400 rounded-lg flex items-center justify-center shadow-lg">
+                    <span class="text-white text-xl font-bold">G</span>
+                </div>
+                <div>
+                    <h1 class="text-xl font-semibold text-gray-900 dark:text-white">GRAFF</h1>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Educational Chapter Analysis</p>
+                </div>
             </div>
-            <p class="tagline">AI-Powered Educational Chapter Analysis</p>
+            <div class="flex items-center gap-3">
+                <!-- Theme Toggle -->
+                <button id="themeToggle" class="p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 hover:scale-110" aria-label="Toggle theme">
+                    <svg id="sunIcon" class="w-5 h-5 hidden dark:block transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                    <svg id="moonIcon" class="w-5 h-5 block dark:hidden transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                    </svg>
+                </button>
+                <button id="homeBtn" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 hover:scale-105">
+                    New Analysis
+                </button>
+            </div>
         </div>
     </header>
 
     <!-- Main Content -->
-    <main class="main">
-        <div class="container">
+    <main class="max-w-6xl mx-auto px-6 py-8">
+        <!-- Upload Section -->
+        <section id="uploadSection" class="space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Upload Card -->
+                <div class="unique-card bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-2 h-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full animate-pulse"></div>
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Upload Chapter</h2>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">5-phase AI analysis with GPT-4o</p>
 
-            <!-- Upload Section -->
-            <section class="upload-section" id="uploadSection">
-                <!-- Load Existing Analysis -->
-                <div class="upload-card" style="margin-bottom: 24px;">
-                    <h2>Load Existing Analysis</h2>
-                    <p class="subtitle">View previously analyzed chapters</p>
-                    <div id="existingChapters" style="display: grid; gap: 12px;"></div>
-                </div>
-
-                <div class="upload-card">
-                    <h2>Upload Textbook Chapter</h2>
-                    <p class="subtitle">5-phase AI analysis with GPT-4o</p>
-
-                    <form id="uploadForm" class="upload-form">
+                    <form id="uploadForm" class="space-y-4">
                         <!-- File Upload -->
-                        <div class="form-group">
-                            <label for="fileInput" class="file-label">
-                                <div class="file-upload-area" id="dropZone">
-                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke-width="2" stroke-linecap="round"/>
-                                    </svg>
-                                    <p class="upload-text">Drag & drop your file here</p>
-                                    <p class="upload-subtext">or click to browse</p>
-                                    <p class="file-types">.txt, .docx (max 10MB)</p>
-                                </div>
-                                <input type="file" id="fileInput" accept=".txt,.docx" required>
-                            </label>
-                            <div id="fileName" class="file-name"></div>
-                        </div>
-
-                        <!-- Metadata Fields -->
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="chapterId">Chapter ID</label>
-                                <input type="text" id="chapterId" placeholder="e.g., ch-01-intro" required>
+                        <label for="fileInput" class="cursor-pointer">
+                            <div id="dropZone" class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors">
+                                <svg class="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Drop file here or click to browse</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">.txt, .docx, .pdf (max 100MB)</p>
                             </div>
-                            <div class="form-group">
-                                <label for="version">Version</label>
-                                <input type="text" id="version" placeholder="e.g., v1.0" required>
+                            <input type="file" id="fileInput" accept=".txt,.docx,.pdf" required class="hidden">
+                        </label>
+                        <div id="fileName" class="hidden text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-lg mt-3"></div>
+
+                        <!-- Metadata -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Chapter ID</label>
+                                <input type="text" id="chapterId" required placeholder="ch-01-intro" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Version</label>
+                                <input type="text" id="version" required placeholder="v1.0" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent">
                             </div>
                         </div>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="sourceText">Source/Textbook Name</label>
-                                <input type="text" id="sourceText" placeholder="e.g., Introduction to Communication">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Source</label>
+                                <input type="text" id="sourceText" placeholder="Textbook name" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent">
                             </div>
-                            <div class="form-group">
-                                <label for="author">Author/Editor</label>
-                                <input type="text" id="author" placeholder="Optional">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Author</label>
+                                <input type="text" id="author" placeholder="Optional" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent">
                             </div>
                         </div>
 
-                        <!-- Submit Button -->
-                        <button type="submit" class="btn btn-primary" id="submitBtn">
-                            <span class="btn-text">Analyze Chapter</span>
-                            <svg class="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path d="M5 12h14M12 5l7 7-7 7" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
+                        <button type="submit" class="btn-ripple w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 dark:from-blue-500 dark:to-blue-400 dark:hover:from-blue-600 dark:hover:to-blue-500 text-white font-semibold rounded-lg transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0">
+                            <span class="flex items-center justify-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                Analyze Chapter
+                            </span>
                         </button>
                     </form>
 
                     <!-- Processing Status -->
-                    <div id="processingStatus" class="processing-status hidden">
-                        <div class="progress-circle">
-                            <svg class="spinner" viewBox="0 0 50 50">
-                                <circle cx="25" cy="25" r="20" fill="none" stroke-width="4"/>
-                            </svg>
+                    <div id="processingStatus" class="hidden text-center py-8">
+                        <div class="relative inline-flex items-center justify-center mb-4">
+                            <div class="absolute w-16 h-16 border-4 border-blue-200 dark:border-blue-900 rounded-full animate-ping"></div>
+                            <div class="relative w-12 h-12 border-4 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin"></div>
                         </div>
-                        <h3>Processing Chapter...</h3>
-                        <p id="statusText">Analyzing with GPT-4o (this may take 5-15 minutes)</p>
-                        <div class="phase-indicators">
-                            <div class="phase" data-phase="1">
-                                <div class="phase-dot"></div>
-                                <span>Comprehension</span>
+                        <p id="progressPhase" class="text-sm font-semibold text-gray-700 dark:text-gray-300">Processing chapter...</p>
+                        <p id="progressMessage" class="text-xs text-gray-500 dark:text-gray-400 mt-1">Starting analysis...</p>
+
+                        <!-- Progress Bar -->
+                        <div class="mt-4 w-full max-w-md mx-auto">
+                            <div class="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-2">
+                                <span id="progressPercent">0%</span>
+                                <span id="progressETA">Estimating time...</span>
                             </div>
-                            <div class="phase" data-phase="2">
-                                <div class="phase-dot"></div>
-                                <span>Structure</span>
+                            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                                <div id="progressBar" class="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
                             </div>
-                            <div class="phase" data-phase="3">
-                                <div class="phase-dot"></div>
-                                <span>Propositions</span>
+                        </div>
+
+                        <!-- Phase Indicators -->
+                        <div class="mt-6 flex justify-center gap-2">
+                            <div id="phase-1-indicator" class="flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                                <span>Phase 1</span>
                             </div>
-                            <div class="phase" data-phase="4">
-                                <div class="phase-dot"></div>
-                                <span>Metadata</span>
+                            <div id="phase-2-indicator" class="flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                                <span>Phase 2</span>
                             </div>
-                            <div class="phase" data-phase="5">
-                                <div class="phase-dot"></div>
-                                <span>Pedagogical</span>
+                            <div id="phase-3-indicator" class="flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                                <span>Phase 3</span>
+                            </div>
+                            <div id="phase-4-indicator" class="flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                                <span>Phase 4</span>
+                            </div>
+                            <div id="phase-5-indicator" class="flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                                <span>Phase 5</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Feature Cards -->
-                <div class="features">
-                    <div class="feature-card">
-                        <div class="feature-icon">📚</div>
-                        <h3>5-Phase Analysis</h3>
-                        <p>Comprehension, structure, propositions, metadata, and pedagogical mapping</p>
+                <!-- Existing Analyses -->
+                <div class="unique-card bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-2 h-2 bg-gradient-to-r from-green-600 to-blue-600 rounded-full animate-pulse"></div>
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Analyses</h2>
                     </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">🎯</div>
-                        <h3>Pedagogical Insights</h3>
-                        <p>Learning objectives, activities, assessments, and temporal analysis</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">⏱️</div>
-                        <h3>Temporal Tracking</h3>
-                        <p>Identifies outdated examples and flags content needing updates</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">View previously analyzed chapters</p>
+                    <div id="existingChapters" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <!-- Features -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="hover-glow group relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800 rounded-xl shadow-md border-2 border-blue-200 dark:border-gray-700 p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400 dark:hover:border-blue-600">
+                    <div class="relative z-10">
+                        <div class="emoji-float text-4xl mb-3 inline-block">📚</div>
+                        <h3 class="font-black text-gray-900 dark:text-white text-base mb-2 tracking-tight">5-Phase Analysis</h3>
+                        <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Comprehensive analysis from comprehension to pedagogy</p>
                     </div>
                 </div>
-            </section>
+                <div class="hover-glow group relative overflow-hidden bg-gradient-to-br from-purple-50 via-white to-purple-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800 rounded-xl shadow-md border-2 border-purple-200 dark:border-gray-700 p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-purple-400 dark:hover:border-purple-600">
+                    <div class="relative z-10">
+                        <div class="emoji-float text-4xl mb-3 inline-block">🎯</div>
+                        <h3 class="font-black text-gray-900 dark:text-white text-base mb-2 tracking-tight">Learning Objectives</h3>
+                        <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Auto-generate objectives, activities, and assessments</p>
+                    </div>
+                </div>
+                <div class="hover-glow group relative overflow-hidden bg-gradient-to-br from-green-50 via-white to-green-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800 rounded-xl shadow-md border-2 border-green-200 dark:border-gray-700 p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-green-400 dark:hover:border-green-600">
+                    <div class="relative z-10">
+                        <div class="emoji-float text-4xl mb-3 inline-block">⏱️</div>
+                        <h3 class="font-black text-gray-900 dark:text-white text-base mb-2 tracking-tight">Temporal Analysis</h3>
+                        <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Track content relevance and update needs</p>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-            <!-- Results Section -->
-            <section class="results-section hidden" id="resultsSection">
-                <div class="results-header">
-                    <h2>Analysis Results</h2>
-                    <button class="btn btn-secondary" id="newAnalysisBtn">
-                        <span>New Analysis</span>
+        <!-- Results Section -->
+        <section id="resultsSection" class="hidden space-y-6">
+            <div class="result-card rounded-xl shadow-xl border-2 border-gray-200 dark:border-gray-700 p-6 transition-all duration-300">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="w-1 h-8 bg-gradient-to-b from-blue-600 to-purple-600 rounded-full"></div>
+                        <h2 class="text-xl font-black text-gray-900 dark:text-white tracking-tight">Analysis Results</h2>
+                    </div>
+                    <button id="newAnalysisBtn" class="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 hover:scale-105">
+                        New Analysis
                     </button>
                 </div>
 
-                <!-- Tab Navigation -->
-                <div class="tabs">
-                    <button class="tab active" data-tab="overview">Overview</button>
-                    <button class="tab" data-tab="metadata">Metadata</button>
-                    <button class="tab" data-tab="comprehension">Comprehension</button>
-                    <button class="tab" data-tab="outline">Outline</button>
-                    <button class="tab" data-tab="propositions">Propositions</button>
-                    <button class="tab" data-tab="analytics">Analytics</button>
-                    <button class="tab" data-tab="pedagogy">Pedagogy</button>
-                    <button class="tab" data-tab="activities">Student Activities</button>
-                    <button class="tab" data-tab="questions">Questions</button>
-                    <button class="tab" data-tab="review">Review</button>
-                    <button class="tab" data-tab="visual">Visual Media</button>
-                    <button class="tab" data-tab="temporal">Temporal</button>
-                    <button class="tab" data-tab="historical">Historical</button>
-                    <button class="tab" data-tab="contemporary">Contemporary</button>
-                    <button class="tab" data-tab="raw">Raw JSON</button>
+                <!-- Tabs -->
+                <div class="flex gap-2 overflow-x-auto pb-4 mb-6 relative">
+                    <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 opacity-20"></div>
+                    <button class="tab px-5 py-2.5 text-sm font-bold rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 text-white shadow-lg transition-all duration-200 hover:shadow-xl" data-tab="overview">Overview</button>
+                    <button class="tab px-5 py-2.5 text-sm font-semibold rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-50 dark:hover:from-gray-700 dark:hover:to-gray-700 transition-all duration-200 hover:scale-105 hover:shadow-md" data-tab="metadata">Metadata</button>
+                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="comprehension">Comprehension</button>
+                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="outline">Outline</button>
+                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="propositions">Propositions</button>
+                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="analytics">Analytics</button>
+                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="pedagogy">Pedagogy</button>
+                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="activities">Activities</button>
+                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="questions">Questions</button>
+                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="temporal">Temporal</button>
+                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="raw">Raw JSON</button>
                 </div>
 
                 <!-- Tab Content -->
                 <div class="tab-content">
-                    <!-- Overview Tab -->
-                    <div class="tab-panel active" id="overview">
-                        <div class="overview-grid">
-                            <div class="info-card">
-                                <h3>Chapter Information</h3>
-                                <div id="chapterInfo"></div>
+                    <div class="tab-panel" id="overview">
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Chapter Info</h3>
+                                <div id="chapterInfo" class="text-sm text-gray-700 dark:text-gray-300 space-y-1"></div>
                             </div>
-                            <div class="info-card">
-                                <h3>Quick Stats</h3>
-                                <div id="quickStats"></div>
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Quick Stats</h3>
+                                <div id="quickStats" class="text-sm text-gray-700 dark:text-gray-300 space-y-1"></div>
                             </div>
                         </div>
-                        <div class="info-card">
-                            <h3>Key Concepts</h3>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Key Concepts</h3>
                             <div id="keyConcepts"></div>
                         </div>
                     </div>
 
-                    <!-- Metadata Tab -->
-                    <div class="tab-panel" id="metadata">
-                        <div class="section-card">
-                            <h3>System Metadata</h3>
-                            <div id="metadataContent"></div>
+                    <div class="tab-panel hidden" id="metadata">
+                        <div id="metadataContent" class="space-y-3 text-sm"></div>
+                    </div>
+
+                    <div class="tab-panel hidden" id="comprehension">
+                        <div class="space-y-4">
+                            <div><h3 class="font-semibold text-gray-900 dark:text-white mb-2">Who</h3><div id="comprehensionWho"></div></div>
+                            <div><h3 class="font-semibold text-gray-900 dark:text-white mb-2">What</h3><div id="comprehensionWhat"></div></div>
+                            <div><h3 class="font-semibold text-gray-900 dark:text-white mb-2">When</h3><div id="comprehensionWhen"></div></div>
+                            <div><h3 class="font-semibold text-gray-900 dark:text-white mb-2">Why</h3><div id="comprehensionWhy"></div></div>
+                            <div><h3 class="font-semibold text-gray-900 dark:text-white mb-2">How</h3><div id="comprehensionHow"></div></div>
                         </div>
                     </div>
 
-                    <!-- Comprehension Tab -->
-                    <div class="tab-panel" id="comprehension">
-                        <div class="section-card">
-                            <h3>Who</h3>
-                            <div id="comprehensionWho"></div>
-                        </div>
-                        <div class="section-card">
-                            <h3>What</h3>
-                            <div id="comprehensionWhat"></div>
-                        </div>
-                        <div class="section-card">
-                            <h3>When</h3>
-                            <div id="comprehensionWhen"></div>
-                        </div>
-                        <div class="section-card">
-                            <h3>Why</h3>
-                            <div id="comprehensionWhy"></div>
-                        </div>
-                        <div class="section-card">
-                            <h3>How</h3>
-                            <div id="comprehensionHow"></div>
+                    <div class="tab-panel hidden" id="outline">
+                        <div id="outlineContent"></div>
+                    </div>
+
+                    <div class="tab-panel hidden" id="propositions">
+                        <div id="propositionsList"></div>
+                    </div>
+
+                    <div class="tab-panel hidden" id="analytics">
+                        <div id="analyticsContent" class="space-y-3 text-sm text-gray-700 dark:text-gray-300"></div>
+                    </div>
+
+                    <div class="tab-panel hidden" id="pedagogy">
+                        <div class="space-y-4">
+                            <div><h3 class="font-semibold text-gray-900 dark:text-white mb-2">Learning Objectives</h3><div id="pedagogyObjectives"></div></div>
+                            <div><h3 class="font-semibold text-gray-900 dark:text-white mb-2">Chapter Summary</h3><div id="pedagogySummary"></div></div>
+                            <div><h3 class="font-semibold text-gray-900 dark:text-white mb-2">Discussion Questions</h3><div id="pedagogyDiscussion"></div></div>
                         </div>
                     </div>
 
-                    <!-- Outline Tab -->
-                    <div class="tab-panel" id="outline">
-                        <div class="section-card">
-                            <h3>Structural Outline</h3>
-                            <div id="outlineContent"></div>
-                        </div>
+                    <div class="tab-panel hidden" id="activities">
+                        <div id="activitiesContent"></div>
                     </div>
 
-                    <!-- Propositions Tab -->
-                    <div class="tab-panel" id="propositions">
-                        <div class="section-card">
-                            <h3>Truth Claims & Propositions</h3>
-                            <div id="propositionsList"></div>
-                        </div>
+                    <div class="tab-panel hidden" id="questions">
+                        <div id="questionsContent"></div>
                     </div>
 
-                    <!-- Analytics Tab -->
-                    <div class="tab-panel" id="analytics">
-                        <div class="section-card">
-                            <h3>Analytical Metadata</h3>
-                            <div id="analyticsContent"></div>
-                        </div>
+                    <div class="tab-panel hidden" id="temporal">
+                        <div id="temporalContent"></div>
                     </div>
 
-                    <!-- Pedagogy Tab -->
-                    <div class="tab-panel" id="pedagogy">
-                        <div class="section-card">
-                            <h3>📋 Learning Objectives</h3>
-                            <div id="pedagogyObjectives"></div>
-                        </div>
-                        <div class="section-card">
-                            <h3>📝 Chapter Summary</h3>
-                            <div id="pedagogySummary"></div>
-                        </div>
-                        <div class="section-card">
-                            <h3>💬 Discussion Questions</h3>
-                            <div id="pedagogyDiscussion"></div>
-                        </div>
-                    </div>
-
-                    <!-- Student Activities Tab -->
-                    <div class="tab-panel" id="activities">
-                        <div class="section-card">
-                            <h3>✏️ Student Activities</h3>
-                            <div id="activitiesContent"></div>
-                        </div>
-                    </div>
-
-                    <!-- Questions Tab -->
-                    <div class="tab-panel" id="questions">
-                        <div class="section-card">
-                            <h3>✅ Assessment Questions</h3>
-                            <div id="questionsContent"></div>
-                        </div>
-                    </div>
-
-                    <!-- Review Tab -->
-                    <div class="tab-panel" id="review">
-                        <div class="section-card">
-                            <h3>Review Sections</h3>
-                            <div id="reviewContent"></div>
-                        </div>
-                    </div>
-
-                    <!-- Visual Media Tab -->
-                    <div class="tab-panel" id="visual">
-                        <div class="section-card">
-                            <h3>🖼️ Visual Media References</h3>
-                            <div id="visualContent"></div>
-                        </div>
-                    </div>
-
-                    <!-- Temporal Tab -->
-                    <div class="tab-panel" id="temporal">
-                        <div class="section-card">
-                            <h3>⏳ Temporal Range</h3>
-                            <div id="temporalContent"></div>
-                        </div>
-                    </div>
-
-                    <!-- Historical Tab -->
-                    <div class="tab-panel" id="historical">
-                        <div class="section-card">
-                            <h3>📅 Historical Examples</h3>
-                            <div id="historicalContent"></div>
-                        </div>
-                    </div>
-
-                    <!-- Contemporary Tab -->
-                    <div class="tab-panel" id="contemporary">
-                        <div class="section-card">
-                            <h3>🔄 Contemporary Examples</h3>
-                            <p class="card-subtitle">May need future updates</p>
-                            <div id="contemporaryContent"></div>
-                        </div>
-                    </div>
-
-                    <!-- Raw JSON Tab -->
-                    <div class="tab-panel" id="raw">
-                        <div class="json-container">
-                            <button class="btn btn-secondary btn-sm" id="copyJsonBtn">Copy JSON</button>
-                            <pre id="rawJson"></pre>
+                    <div class="tab-panel hidden" id="raw">
+                        <div class="relative">
+                            <button id="copyJsonBtn" class="absolute top-2 right-2 px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded">Copy</button>
+                            <pre id="rawJson" class="bg-gray-900 dark:bg-black text-green-400 dark:text-green-300 p-4 rounded-lg text-xs overflow-x-auto max-h-[600px] overflow-y-auto"></pre>
                         </div>
                     </div>
                 </div>
-            </section>
-
-        </div>
+            </div>
+        </section>
     </main>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <p>Doc Digester v0.2.0 | Powered by GPT-4o | Built with FastAPI</p>
-        </div>
-    </footer>
 
     <script src="/static/js/app.js"></script>
 </body>

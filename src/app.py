@@ -1,9 +1,13 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, status
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from docx import Document
+from PyPDF2 import PdfReader
 import io
+import json
+import asyncio
+from typing import Dict, List
 from .services.orchestrator import digest_chapter, DigestError, ValidationError, StorageError
 from .utils.logging_config import setup_logging, get_logger
 
@@ -18,8 +22,51 @@ static_path = Path(__file__).parent.parent / "static"
 if static_path.exists():
     app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 
-# Maximum file size: 10MB
-MAX_FILE_SIZE = 10 * 1024 * 1024
+# Maximum file size: 100MB
+MAX_FILE_SIZE = 100 * 1024 * 1024
+
+# Global progress tracker
+progress_tracker: Dict[str, List[Dict]] = {}
+
+def add_progress(job_id: str, phase: str, message: str, status: str = "in_progress"):
+    """Add a progress update for a job"""
+    if job_id not in progress_tracker:
+        progress_tracker[job_id] = []
+    progress_tracker[job_id].append({
+        "phase": phase,
+        "message": message,
+        "status": status,
+        "timestamp": __import__('datetime').datetime.now().isoformat()
+    })
+    logger.info(f"Job {job_id}: {phase} - {message}")
+
+@app.get("/chapters/progress/{job_id}")
+async def stream_progress(job_id: str):
+    """Stream progress updates via Server-Sent Events"""
+    async def event_generator():
+        last_index = 0
+        timeout_count = 0
+        max_timeout = 120  # 2 minutes timeout
+
+        while timeout_count < max_timeout:
+            if job_id in progress_tracker:
+                updates = progress_tracker[job_id][last_index:]
+                if updates:
+                    for update in updates:
+                        yield f"data: {json.dumps(update)}\n\n"
+                    last_index = len(progress_tracker[job_id])
+
+                    # Check if job is complete
+                    if updates[-1]["status"] in ["completed", "error"]:
+                        break
+
+            await asyncio.sleep(0.5)
+            timeout_count += 0.5
+
+        # Send final message
+        yield f"data: {json.dumps({'status': 'timeout', 'message': 'Stream closed'})}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 @app.on_event("startup")
 async def startup_event():
@@ -28,6 +75,32 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     logger.info("Doc Digester API shutting down")
+
+async def process_chapter_background(job_id: str, text: str, sys_meta: Dict):
+    """Background task to process chapter analysis."""
+    try:
+        # Run the synchronous digest_chapter in a thread pool
+        result = await asyncio.to_thread(
+            digest_chapter,
+            text,
+            sys_meta,
+            lambda phase, msg: add_progress(job_id, phase, msg)
+        )
+        add_progress(job_id, "completed", "Analysis complete!", "completed")
+        logger.info(f"Successfully processed chapter: {result.get('chapter_id')}")
+    except ValidationError as e:
+        logger.error(f"Validation error in background task: {e}")
+        add_progress(job_id, "error", f"Validation failed: {str(e)}", "error")
+    except StorageError as e:
+        logger.error(f"Storage error in background task: {e}")
+        add_progress(job_id, "error", f"Storage failed: {str(e)}", "error")
+    except DigestError as e:
+        logger.error(f"Digest error in background task: {e}")
+        add_progress(job_id, "error", f"Analysis failed: {str(e)}", "error")
+    except Exception as e:
+        logger.exception(f"Unexpected error in background task: {e}")
+        add_progress(job_id, "error", f"Unexpected error: {str(e)}", "error")
+
 
 @app.post("/chapters/digest")
 async def chapters_digest(
@@ -40,9 +113,9 @@ async def chapters_digest(
     source_text: str | None = Form(default=None),
 ):
     """
-    Process a chapter document through the 4-phase analysis pipeline.
+    Process a chapter document through the 5-phase analysis pipeline.
 
-    Returns the chapter_id and status on success, or error details on failure.
+    Returns the job_id immediately for progress tracking via SSE.
     """
     logger.info(f"Received digest request for file: {file.filename}")
 
@@ -86,6 +159,24 @@ async def chapters_digest(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Unable to process .docx file. Please ensure it's a valid Word document."
                 )
+        elif filename_lower.endswith('.pdf'):
+            # Handle .pdf files using PyPDF2
+            logger.info("Processing .pdf file")
+            try:
+                pdf_reader = PdfReader(io.BytesIO(content))
+                pages_text = []
+                for page_num, page in enumerate(pdf_reader.pages):
+                    page_text = page.extract_text()
+                    if page_text.strip():
+                        pages_text.append(page_text)
+                text = '\n'.join(pages_text)
+                logger.info(f"Extracted text from {len(pdf_reader.pages)} pages in PDF")
+            except Exception as e:
+                logger.error(f"Failed to extract text from .pdf: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Unable to process .pdf file. Please ensure it's a valid PDF document."
+                )
         else:
             # Handle plain text files
             try:
@@ -121,32 +212,22 @@ async def chapters_digest(
 
         logger.info(f"Processing chapter with {len(text)} characters")
 
-        # Process through pipeline
-        result = digest_chapter(text, sys_meta)
+        # Generate job ID
+        import uuid
+        job_id = str(uuid.uuid4())
 
-        logger.info(f"Successfully processed chapter: {result.get('chapter_id')}")
-        return result
+        # Initialize progress tracking
+        add_progress(job_id, "initialization", "Starting analysis...", "in_progress")
 
-    except ValidationError as e:
-        logger.error(f"Validation error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Validation failed: {str(e)}"
-        )
+        # Start background processing
+        asyncio.create_task(process_chapter_background(job_id, text, sys_meta))
 
-    except StorageError as e:
-        logger.error(f"Storage error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to store analysis results: {str(e)}"
-        )
-
-    except DigestError as e:
-        logger.error(f"Digest error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Analysis pipeline failed: {str(e)}"
-        )
+        # Return job_id immediately for progress tracking
+        return {
+            "job_id": job_id,
+            "status": "processing",
+            "message": "Analysis started. Use the job_id to track progress."
+        }
 
     except HTTPException:
         # Re-raise HTTP exceptions as-is
@@ -216,3 +297,27 @@ async def get_chapter(filename: str):
             return json.load(f)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load chapter: {str(e)}")
+
+@app.delete("/chapters/{filename}")
+async def delete_chapter(filename: str):
+    """Delete a specific chapter analysis by filename."""
+    from pathlib import Path
+    import os
+
+    data_dir = Path(__file__).parent.parent / "data" / "chapters"
+    file_path = data_dir / filename
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Chapter not found")
+
+    # Security check: ensure filename doesn't contain path traversal attempts
+    if '..' in filename or '/' in filename or '\\' in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    try:
+        os.remove(file_path)
+        logger.info(f"Deleted chapter analysis: {filename}")
+        return {"message": "Chapter deleted successfully", "filename": filename}
+    except Exception as e:
+        logger.error(f"Failed to delete chapter {filename}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete chapter: {str(e)}")

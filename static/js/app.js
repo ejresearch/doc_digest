@@ -1,6 +1,29 @@
 // State
 let currentResults = null;
 
+// Theme handling
+const themeToggle = document.getElementById('themeToggle');
+
+function setTheme(theme) {
+    if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+        localStorage.theme = 'dark';
+    } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.theme = 'light';
+    }
+}
+
+if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+        if (document.documentElement.classList.contains('dark')) {
+            setTheme('light');
+        } else {
+            setTheme('dark');
+        }
+    });
+}
+
 // DOM Elements
 const uploadForm = document.getElementById('uploadForm');
 const fileInput = document.getElementById('fileInput');
@@ -10,9 +33,10 @@ const uploadSection = document.getElementById('uploadSection');
 const processingStatus = document.getElementById('processingStatus');
 const resultsSection = document.getElementById('resultsSection');
 const newAnalysisBtn = document.getElementById('newAnalysisBtn');
+const homeBtn = document.getElementById('homeBtn');
 const copyJsonBtn = document.getElementById('copyJsonBtn');
 
-// Load existing chapters on page load
+// Load existing chapters
 async function loadExistingChapters() {
     try {
         const response = await fetch('/chapters/list');
@@ -21,67 +45,85 @@ async function loadExistingChapters() {
 
         if (data.chapters && data.chapters.length > 0) {
             container.innerHTML = data.chapters.map(chapter => `
-                <div style="padding: 16px; background: var(--gray-50); border-radius: 8px; border: 1px solid var(--gray-200); cursor: pointer; transition: all 0.2s ease;"
-                     onclick="loadChapter('${chapter.filename}')"
-                     onmouseover="this.style.background='white'; this.style.borderColor='var(--primary)'"
-                     onmouseout="this.style.background='var(--gray-50)'; this.style.borderColor='var(--gray-200)'">
-                    <div style="display: flex; justify-content: space-between; align-items: start;">
-                        <div>
-                            <strong style="color: var(--primary);">${chapter.chapter_id || 'Unknown'}</strong>
-                            <p style="font-size: 14px; color: var(--gray-600); margin-top: 4px;">${chapter.source_text || 'No source'}</p>
-                            <p style="font-size: 12px; color: var(--gray-600); margin-top: 4px;">Version: ${chapter.version || 'N/A'}</p>
-                        </div>
-                        <span style="background: var(--primary); color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">View</span>
-                    </div>
+                <div class="group relative w-full">
+                    <button onclick="loadChapter('${chapter.filename}')" class="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors">
+                        <div class="font-semibold text-sm text-gray-900 dark:text-white">${chapter.chapter_id || 'Unknown'}</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">${chapter.source_text || 'No source'} • v${chapter.version || 'N/A'}</div>
+                    </button>
+                    <button onclick="event.stopPropagation(); deleteChapter('${chapter.filename}')" class="absolute top-1/2 -translate-y-1/2 right-2 opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 rounded-lg transition-all hover:bg-gray-200 dark:hover:bg-gray-600" title="Delete this analysis">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
                 </div>
             `).join('');
         } else {
-            container.innerHTML = '<p style="color: var(--gray-600); text-align: center; padding: 24px;">No existing analyses found</p>';
+            container.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No analyses yet</p>';
         }
     } catch (error) {
         console.error('Error loading chapters:', error);
-        document.getElementById('existingChapters').innerHTML = '<p style="color: var(--danger); text-align: center;">Failed to load existing chapters</p>';
     }
 }
 
-// Load a specific chapter by filename
-async function loadChapter(filename) {
+// Delete chapter
+window.deleteChapter = async function(filename) {
+    if (!confirm('Are you sure you want to delete this analysis? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/chapters/${filename}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to delete chapter');
+        }
+
+        // Reload the list
+        await loadExistingChapters();
+
+        // Show success message
+        alert('Analysis deleted successfully!');
+    } catch (error) {
+        alert(`Error deleting chapter: ${error.message}`);
+        console.error('Delete error:', error);
+    }
+};
+
+// Load specific chapter
+window.loadChapter = async function(filename) {
     try {
         const response = await fetch(`/chapters/${filename}`);
-        if (!response.ok) {
-            throw new Error('Failed to load chapter');
-        }
+        if (!response.ok) throw new Error('Failed to load chapter');
+
         const data = await response.json();
         currentResults = data;
         showResults(data);
     } catch (error) {
         alert(`Error loading chapter: ${error.message}`);
     }
-}
+};
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', () => {
-    loadExistingChapters();
-});
-
-// File Upload Handling
-dropZone.addEventListener('click', () => fileInput.click());
+// File upload handling
+// Note: Click handling is managed by the label wrapper in HTML
 
 dropZone.addEventListener('dragover', (e) => {
     e.preventDefault();
-    dropZone.style.borderColor = 'var(--primary)';
-    dropZone.style.background = 'white';
+    e.stopPropagation();
+    dropZone.classList.add('border-blue-500', 'bg-blue-50', 'dark:bg-gray-700');
 });
 
-dropZone.addEventListener('dragleave', () => {
-    dropZone.style.borderColor = 'var(--gray-300)';
-    dropZone.style.background = 'var(--gray-50)';
+dropZone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-gray-700');
 });
 
 dropZone.addEventListener('drop', (e) => {
     e.preventDefault();
-    dropZone.style.borderColor = 'var(--gray-300)';
-    dropZone.style.background = 'var(--gray-50)';
+    e.stopPropagation();
+    dropZone.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-gray-700');
 
     const files = e.dataTransfer.files;
     if (files.length > 0) {
@@ -91,17 +133,28 @@ dropZone.addEventListener('drop', (e) => {
 });
 
 fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
+    console.log('File input change event triggered');
+    if (e.target.files && e.target.files.length > 0) {
+        console.log('File selected:', e.target.files[0].name);
         updateFileName(e.target.files[0].name);
+    } else {
+        console.log('No file selected');
     }
 });
 
 function updateFileName(name) {
-    fileName.textContent = `Selected: ${name}`;
-    fileName.classList.add('show');
+    console.log('updateFileName called with:', name);
+    if (fileName) {
+        fileName.textContent = `✓ Selected: ${name}`;
+        fileName.classList.remove('hidden');
+        fileName.style.display = 'block';
+        console.log('File name displayed successfully');
+    } else {
+        console.error('fileName element not found');
+    }
 }
 
-// Form Submission
+// Form submission with real-time SSE progress tracking
 uploadForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -112,11 +165,17 @@ uploadForm.addEventListener('submit', async (e) => {
     formData.append('source_text', document.getElementById('sourceText').value || '');
     formData.append('author_or_editor', document.getElementById('author').value || '');
 
-    // Show processing status
-    uploadForm.style.display = 'none';
+    // Show processing
+    uploadForm.classList.add('hidden');
     processingStatus.classList.remove('hidden');
 
+    // Reset progress UI
+    updateProgress('initialization', 'Starting analysis...', 0);
+
+    let eventSource = null;
+
     try {
+        // Submit the form and get job_id
         const response = await fetch('/chapters/digest', {
             method: 'POST',
             body: formData
@@ -127,22 +186,166 @@ uploadForm.addEventListener('submit', async (e) => {
             throw new Error(error.detail || 'Analysis failed');
         }
 
-        const results = await response.json();
-        currentResults = results;
+        const data = await response.json();
+        const jobId = data.job_id;
 
-        // Show results
-        showResults(results);
+        if (!jobId) {
+            throw new Error('No job ID returned from server');
+        }
+
+        console.log('Analysis started with job ID:', jobId);
+
+        // Connect to SSE endpoint for real-time progress
+        eventSource = new EventSource(`/chapters/progress/${jobId}`);
+
+        eventSource.onmessage = (event) => {
+            try {
+                const update = JSON.parse(event.data);
+                console.log('Progress update:', update);
+
+                if (update.status === 'timeout') {
+                    eventSource.close();
+                    throw new Error('Progress stream timed out');
+                }
+
+                // Update UI with real progress
+                updateProgress(update.phase, update.message);
+
+                // Check if completed
+                if (update.status === 'completed') {
+                    eventSource.close();
+
+                    // Final progress update
+                    updateProgress('completed', 'Analysis complete!', 100);
+
+                    // Load the results
+                    setTimeout(async () => {
+                        try {
+                            // Fetch updated chapter list
+                            const listResponse = await fetch('/chapters/list');
+                            const listData = await listResponse.json();
+
+                            // Find the most recent chapter (should be our new one)
+                            if (listData.chapters && listData.chapters.length > 0) {
+                                const latestChapter = listData.chapters[listData.chapters.length - 1];
+                                await loadChapter(latestChapter.filename);
+                            } else {
+                                throw new Error('No chapters found after analysis');
+                            }
+                        } catch (loadError) {
+                            console.error('Error loading results:', loadError);
+                            alert('Analysis completed but failed to load results. Please refresh the page.');
+                            uploadForm.classList.remove('hidden');
+                            processingStatus.classList.add('hidden');
+                        }
+                    }, 500);
+                }
+
+                // Check if error
+                if (update.status === 'error') {
+                    eventSource.close();
+                    throw new Error(update.message || 'Analysis failed');
+                }
+
+            } catch (parseError) {
+                console.error('Error parsing progress update:', parseError);
+            }
+        };
+
+        eventSource.onerror = (error) => {
+            console.error('SSE error:', error);
+            eventSource.close();
+
+            // Don't immediately fail - the analysis might still be running
+            // Just log the error and keep showing the last known state
+            console.warn('Lost connection to progress stream, but analysis may still be running');
+        };
 
     } catch (error) {
-        alert(`Error: ${error.message}`);
-        uploadForm.style.display = 'block';
+        console.error('Error:', error);
+
+        if (eventSource) {
+            eventSource.close();
+        }
+
+        updateProgress('error', `Error: ${error.message}`, 0);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        uploadForm.classList.remove('hidden');
         processingStatus.classList.add('hidden');
     }
 });
 
-// Show Results
+// Update progress display
+function updateProgress(phase, message, percent) {
+    const progressPhase = document.getElementById('progressPhase');
+    const progressMessage = document.getElementById('progressMessage');
+    const progressBar = document.getElementById('progressBar');
+    const progressPercent = document.getElementById('progressPercent');
+    const progressETA = document.getElementById('progressETA');
+
+    // Map phase to user-friendly text and percentage
+    const phaseMap = {
+        'initialization': { label: 'Initializing', percent: 5 },
+        'phase-1': { label: 'Phase 1 of 5: Comprehension', percent: 20 },
+        'phase-2': { label: 'Phase 2 of 5: Structure', percent: 40 },
+        'phase-3': { label: 'Phase 3 of 5: Propositions', percent: 60 },
+        'phase-4': { label: 'Phase 4 of 5: Analytics', percent: 75 },
+        'phase-5': { label: 'Phase 5 of 5: Pedagogy', percent: 90 },
+        'validation': { label: 'Finalizing', percent: 95 },
+        'completed': { label: 'Complete!', percent: 100 },
+        'error': { label: 'Error', percent: 0 }
+    };
+
+    const phaseInfo = phaseMap[phase] || { label: 'Processing', percent: percent || 0 };
+
+    // Update text
+    if (progressPhase) {
+        progressPhase.textContent = phaseInfo.label;
+    }
+    if (progressMessage) {
+        progressMessage.textContent = message;
+    }
+
+    // Update progress bar
+    const targetPercent = percent !== undefined ? percent : phaseInfo.percent;
+    if (progressBar) {
+        progressBar.style.width = `${targetPercent}%`;
+    }
+    if (progressPercent) {
+        progressPercent.textContent = `${Math.round(targetPercent)}%`;
+    }
+
+    // Update phase indicators
+    for (let i = 1; i <= 5; i++) {
+        const indicator = document.getElementById(`phase-${i}-indicator`);
+        if (indicator) {
+            const phaseNum = phase.match(/phase-(\d)/)?.[1];
+            if (phaseNum && parseInt(phaseNum) === i) {
+                // Current phase
+                indicator.className = 'flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-blue-600 text-white animate-pulse';
+            } else if (phaseNum && parseInt(phaseNum) > i) {
+                // Completed phase
+                indicator.className = 'flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-green-600 text-white';
+            } else {
+                // Pending phase
+                indicator.className = 'flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400';
+            }
+        }
+    }
+
+    // Estimate time remaining
+    if (progressETA && phase !== 'completed' && phase !== 'error') {
+        const remainingPercent = 100 - targetPercent;
+        const estimatedMinutes = Math.ceil((remainingPercent / 100) * 12); // Rough estimate
+        progressETA.textContent = `~${estimatedMinutes} min remaining`;
+    } else if (progressETA && phase === 'completed') {
+        progressETA.textContent = 'Done!';
+    }
+}
+
+// Show results
 function showResults(data) {
-    uploadSection.style.display = 'none';
+    uploadSection.classList.add('hidden');
     resultsSection.classList.remove('hidden');
 
     renderOverview(data);
@@ -154,499 +357,227 @@ function showResults(data) {
     renderPedagogy(data);
     renderActivities(data);
     renderQuestions(data);
-    renderReview(data);
-    renderVisual(data);
     renderTemporal(data);
-    renderHistorical(data);
-    renderContemporary(data);
     renderRawJson(data);
 }
 
-// Render Overview Tab
+// Render functions
 function renderOverview(data) {
-    // Chapter Info
-    const chapterInfo = document.getElementById('chapterInfo');
-    chapterInfo.innerHTML = `
+    document.getElementById('chapterInfo').innerHTML = `
         <p><strong>Chapter ID:</strong> ${data.system_metadata?.chapter_id || 'N/A'}</p>
         <p><strong>Version:</strong> ${data.system_metadata?.version || 'N/A'}</p>
         <p><strong>Source:</strong> ${data.system_metadata?.source_text || 'N/A'}</p>
         <p><strong>Author:</strong> ${data.system_metadata?.author_or_editor || 'Unknown'}</p>
     `;
 
-    // Quick Stats
-    const quickStats = document.getElementById('quickStats');
-    const propCount = data.propositional_extraction?.propositions?.length || 0;
-    const objectiveCount = data.pedagogical_mapping?.learning_objectives?.length || 0;
-    const activityCount = data.pedagogical_mapping?.student_activities?.length || 0;
-
-    quickStats.innerHTML = `
-        <p><strong>Learning Objectives:</strong> ${objectiveCount}</p>
-        <p><strong>Student Activities:</strong> ${activityCount}</p>
-        <p><strong>Propositions:</strong> ${propCount}</p>
+    document.getElementById('quickStats').innerHTML = `
+        <p><strong>Learning Objectives:</strong> ${data.pedagogical_mapping?.learning_objectives?.length || 0}</p>
+        <p><strong>Activities:</strong> ${data.pedagogical_mapping?.student_activities?.length || 0}</p>
+        <p><strong>Propositions:</strong> ${data.propositional_extraction?.propositions?.length || 0}</p>
         <p><strong>Subject:</strong> ${data.analytical_metadata?.subject_domain || 'N/A'}</p>
     `;
 
-    // Key Concepts
-    const keyConcepts = document.getElementById('keyConcepts');
     const concepts = data.comprehension_pass?.what || [];
-    if (concepts.length > 0) {
-        keyConcepts.innerHTML = concepts.slice(0, 5).map(concept => `
-            <div class="list-item">
-                <strong>${concept.concept_or_topic}</strong>
-                <p style="margin-top: 4px; font-size: 14px; color: var(--gray-600);">${concept.definition_or_description || ''}</p>
-            </div>
-        `).join('');
-    } else {
-        keyConcepts.innerHTML = '<p>No concepts extracted</p>';
-    }
+    document.getElementById('keyConcepts').innerHTML = concepts.slice(0, 5).map(c => `
+        <div class="mb-3 pb-3 border-b border-gray-200 dark:border-gray-600 last:border-0">
+            <p class="font-semibold text-sm text-gray-900 dark:text-white">${c.concept_or_topic}</p>
+            <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">${c.definition_or_description || ''}</p>
+        </div>
+    `).join('') || '<p class="text-sm text-gray-500 dark:text-gray-400">No concepts found</p>';
 }
 
-// Render Metadata Tab
 function renderMetadata(data) {
-    const metadata = document.getElementById('metadataContent');
     const meta = data.system_metadata || {};
-
-    metadata.innerHTML = `
-        <div style="display: grid; gap: 16px;">
-            <div class="list-item">
-                <strong>Chapter ID:</strong>
-                <p style="margin-top: 4px;">${meta.chapter_id || 'N/A'}</p>
-            </div>
-            <div class="list-item">
-                <strong>File Name:</strong>
-                <p style="margin-top: 4px;">${meta.file_name || 'N/A'}</p>
-            </div>
-            <div class="list-item">
-                <strong>Author/Editor:</strong>
-                <p style="margin-top: 4px;">${meta.author_or_editor || 'Unknown'}</p>
-            </div>
-            <div class="list-item">
-                <strong>Version:</strong>
-                <p style="margin-top: 4px;">${meta.version || 'N/A'}</p>
-            </div>
-            <div class="list-item">
-                <strong>Created At:</strong>
-                <p style="margin-top: 4px;">${meta.created_at || 'N/A'}</p>
-            </div>
-            <div class="list-item">
-                <strong>Source Text:</strong>
-                <p style="margin-top: 4px;">${meta.source_text || 'N/A'}</p>
-            </div>
-        </div>
+    document.getElementById('metadataContent').innerHTML = `
+        <p><strong>Chapter ID:</strong> ${meta.chapter_id || 'N/A'}</p>
+        <p><strong>File Name:</strong> ${meta.file_name || 'N/A'}</p>
+        <p><strong>Author/Editor:</strong> ${meta.author_or_editor || 'Unknown'}</p>
+        <p><strong>Version:</strong> ${meta.version || 'N/A'}</p>
+        <p><strong>Created:</strong> ${meta.created_at || 'N/A'}</p>
+        <p><strong>Source:</strong> ${meta.source_text || 'N/A'}</p>
     `;
 }
 
-// Render Comprehension Tab
 function renderComprehension(data) {
     const comp = data.comprehension_pass || {};
 
     // Who
-    const who = document.getElementById('comprehensionWho');
-    if (comp.who && comp.who.length > 0) {
-        who.innerHTML = comp.who.map(item => `
-            <div class="list-item" style="margin-bottom: 12px;">
-                <strong>${item.entity}</strong>
-                ${item.role_or_function ? `<p style="margin-top: 4px;"><em>Role:</em> ${item.role_or_function}</p>` : ''}
-                ${item.significance_in_chapter ? `<p style="margin-top: 4px;"><em>Significance:</em> ${item.significance_in_chapter}</p>` : ''}
-                ${item.evidence_pointer ? `<p style="margin-top: 4px; font-size: 13px; color: var(--gray-600);">📍 ${item.evidence_pointer}</p>` : ''}
-            </div>
-        `).join('');
-    } else {
-        who.innerHTML = '<p style="color: var(--gray-600);">No entities found</p>';
-    }
+    const who = comp.who || [];
+    document.getElementById('comprehensionWho').innerHTML = who.map(item => `
+        <div class="mb-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <p class="font-semibold text-sm text-gray-900 dark:text-white">${item.entity}</p>
+            ${item.role_or_function ? `<p class="text-xs text-gray-600 dark:text-gray-400 mt-1">Role: ${item.role_or_function}</p>` : ''}
+            ${item.significance_in_chapter ? `<p class="text-xs text-gray-600 dark:text-gray-400 mt-1">Significance: ${item.significance_in_chapter}</p>` : ''}
+        </div>
+    `).join('') || '<p class="text-sm text-gray-500 dark:text-gray-400">No entities found</p>';
 
     // What
-    const what = document.getElementById('comprehensionWhat');
-    if (comp.what && comp.what.length > 0) {
-        what.innerHTML = comp.what.map(item => `
-            <div class="list-item" style="margin-bottom: 12px;">
-                <strong>${item.concept_or_topic}</strong>
-                ${item.definition_or_description ? `<p style="margin-top: 4px;">${item.definition_or_description}</p>` : ''}
-                ${item.importance ? `<p style="margin-top: 4px;"><em>Importance:</em> ${item.importance}</p>` : ''}
-                ${item.evidence_pointer ? `<p style="margin-top: 4px; font-size: 13px; color: var(--gray-600);">📍 ${item.evidence_pointer}</p>` : ''}
-            </div>
-        `).join('');
-    } else {
-        what.innerHTML = '<p style="color: var(--gray-600);">No concepts found</p>';
-    }
+    const what = comp.what || [];
+    document.getElementById('comprehensionWhat').innerHTML = what.map(item => `
+        <div class="mb-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <p class="font-semibold text-sm text-gray-900 dark:text-white">${item.concept_or_topic}</p>
+            ${item.definition_or_description ? `<p class="text-xs text-gray-600 dark:text-gray-400 mt-1">${item.definition_or_description}</p>` : ''}
+        </div>
+    `).join('') || '<p class="text-sm text-gray-500 dark:text-gray-400">No concepts found</p>';
 
-    // When
-    const when = document.getElementById('comprehensionWhen');
-    const whenBlock = comp.when || {};
-    when.innerHTML = `
-        <div class="list-item" style="margin-bottom: 12px;">
-            <strong>Historical/Cultural Context:</strong>
-            <p style="margin-top: 4px;">${whenBlock.historical_or_cultural_context || 'N/A'}</p>
-        </div>
-        <div class="list-item" style="margin-bottom: 12px;">
-            <strong>Chronological Sequence:</strong>
-            <p style="margin-top: 4px;">${whenBlock.chronological_sequence_within_course || 'N/A'}</p>
-        </div>
-        <div class="list-item">
-            <strong>Moment of Presentation:</strong>
-            <p style="margin-top: 4px;">${whenBlock.moment_of_presentation_to_reader || 'N/A'}</p>
+    // When/Why/How
+    const when = comp.when || {};
+    document.getElementById('comprehensionWhen').innerHTML = `
+        <div class="space-y-2 text-sm">
+            <p><strong>Historical Context:</strong> ${when.historical_or_cultural_context || 'N/A'}</p>
+            <p><strong>Chronological Sequence:</strong> ${when.chronological_sequence_within_course || 'N/A'}</p>
         </div>
     `;
 
-    // Why
-    const why = document.getElementById('comprehensionWhy');
-    const whyBlock = comp.why || {};
-    why.innerHTML = `
-        <div class="list-item" style="margin-bottom: 12px;">
-            <strong>Intellectual Value:</strong>
-            <p style="margin-top: 4px;">${whyBlock.intellectual_value || 'N/A'}</p>
-        </div>
-        <div class="list-item" style="margin-bottom: 12px;">
-            <strong>Knowledge-Based Value:</strong>
-            <p style="margin-top: 4px;">${whyBlock.knowledge_based_value || 'N/A'}</p>
-        </div>
-        <div class="list-item">
-            <strong>Moral/Philosophical Significance:</strong>
-            <p style="margin-top: 4px;">${whyBlock.moral_or_philosophical_significance || 'N/A'}</p>
+    const why = comp.why || {};
+    document.getElementById('comprehensionWhy').innerHTML = `
+        <div class="space-y-2 text-sm">
+            <p><strong>Intellectual Value:</strong> ${why.intellectual_value || 'N/A'}</p>
+            <p><strong>Knowledge Value:</strong> ${why.knowledge_based_value || 'N/A'}</p>
         </div>
     `;
 
-    // How
-    const how = document.getElementById('comprehensionHow');
-    const howBlock = comp.how || {};
-    how.innerHTML = `
-        <div class="list-item" style="margin-bottom: 12px;">
-            <strong>Presentation Style:</strong>
-            <p style="margin-top: 4px;">${howBlock.presentation_style || 'N/A'}</p>
-        </div>
-        <div class="list-item" style="margin-bottom: 12px;">
-            <strong>Rhetorical Approach:</strong>
-            <p style="margin-top: 4px;">${howBlock.rhetorical_approach || 'N/A'}</p>
-        </div>
-        <div class="list-item">
-            <strong>Recommended Student Strategy:</strong>
-            <p style="margin-top: 4px;">${howBlock.recommended_student_strategy || 'N/A'}</p>
+    const how = comp.how || {};
+    document.getElementById('comprehensionHow').innerHTML = `
+        <div class="space-y-2 text-sm">
+            <p><strong>Presentation Style:</strong> ${how.presentation_style || 'N/A'}</p>
+            <p><strong>Rhetorical Approach:</strong> ${how.rhetorical_approach || 'N/A'}</p>
         </div>
     `;
 }
 
-// Render Outline Tab
 function renderOutline(data) {
-    const outline = document.getElementById('outlineContent');
     const struct = data.structural_outline || {};
     const sections = struct.outline || [];
 
-    if (sections.length > 0) {
-        outline.innerHTML = `
-            <h4 style="margin-bottom: 16px; font-size: 20px;">${struct.chapter_title || 'Chapter'}</h4>
-            ${struct.guiding_context_questions && struct.guiding_context_questions.length > 0 ? `
-                <div class="list-item" style="margin-bottom: 24px;">
-                    <strong>Guiding Questions:</strong>
-                    <ul style="margin-top: 8px; padding-left: 20px;">
-                        ${struct.guiding_context_questions.map(q => `<li style="margin-bottom: 4px;">${q}</li>`).join('')}
-                    </ul>
-                </div>
-            ` : ''}
-            ${sections.map((section, i) => `
-                <div style="margin-bottom: 24px; padding: 16px; background: white; border-radius: 8px; border-left: 4px solid var(--primary);">
-                    <h5 style="margin-bottom: 8px; font-size: 18px;">${i + 1}. ${section.section_title}</h5>
-                    ${section.section_summary ? `<p style="font-size: 14px; color: var(--gray-600); margin-bottom: 8px;">${section.section_summary}</p>` : ''}
-                    ${section.pedagogical_purpose ? `<p style="font-size: 14px; margin-bottom: 8px;"><strong>Purpose:</strong> ${section.pedagogical_purpose}</p>` : ''}
-                    ${section.rhetorical_mode ? `<p style="font-size: 13px; color: var(--gray-600); margin-bottom: 8px;"><em>Mode: ${section.rhetorical_mode}</em></p>` : ''}
-                    ${section.subtopics && section.subtopics.length > 0 ? `
-                        <div style="margin-top: 12px;">
-                            <strong style="font-size: 14px;">Subtopics:</strong>
-                            ${section.subtopics.map(sub => `
-                                <div style="margin: 8px 0 8px 16px; padding: 8px; background: var(--gray-50); border-radius: 6px;">
-                                    <div style="font-weight: 600;">${sub.subtopic_title}</div>
-                                    ${sub.key_concepts && sub.key_concepts.length > 0 ? `
-                                        <div style="margin-top: 4px; font-size: 13px;">
-                                            <em>Key concepts:</em> ${sub.key_concepts.join(', ')}
-                                        </div>
-                                    ` : ''}
-                                    ${sub.supporting_examples && sub.supporting_examples.length > 0 ? `
-                                        <div style="margin-top: 4px; font-size: 13px;">
-                                            <em>Examples:</em> ${sub.supporting_examples.join(', ')}
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            `).join('')}
-                        </div>
-                    ` : ''}
-                </div>
-            `).join('')}
-        `;
-    } else {
-        outline.innerHTML = '<p style="color: var(--gray-600);">No outline available</p>';
-    }
+    document.getElementById('outlineContent').innerHTML = `
+        <h4 class="text-lg font-semibold text-gray-900 mb-4">${struct.chapter_title || 'Chapter'}</h4>
+        ${sections.map((s, i) => `
+            <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+                <p class="font-semibold text-sm">${i+1}. ${s.section_title}</p>
+                ${s.section_summary ? `<p class="text-xs text-gray-600 mt-2">${s.section_summary}</p>` : ''}
+            </div>
+        `).join('')}
+    ` || '<p class="text-sm text-gray-500">No outline available</p>';
 }
 
-// Render Analytics Tab
-function renderAnalytics(data) {
-    const analytics = document.getElementById('analyticsContent');
-    const meta = data.analytical_metadata || {};
+function renderPropositions(data) {
+    const props = data.propositional_extraction?.propositions || [];
 
-    analytics.innerHTML = `
-        <div style="display: grid; gap: 16px;">
-            <div class="list-item">
-                <strong>Subject Domain:</strong>
-                <p style="margin-top: 4px;">${meta.subject_domain || 'N/A'}</p>
+    document.getElementById('propositionsList').innerHTML = props.map((p, i) => `
+        <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div class="flex items-center gap-2 mb-2">
+                <span class="px-2 py-1 bg-blue-600 dark:bg-blue-500 text-white text-xs font-semibold rounded">#${i+1}</span>
+                ${p.truth_type ? `<span class="text-xs text-gray-600 dark:text-gray-400">${p.truth_type}</span>` : ''}
             </div>
-            <div class="list-item">
-                <strong>Curriculum Unit:</strong>
-                <p style="margin-top: 4px;">${meta.curriculum_unit || 'N/A'}</p>
-            </div>
-            <div class="list-item">
-                <strong>Disciplinary Lens:</strong>
-                <p style="margin-top: 4px;">${meta.disciplinary_lens || 'N/A'}</p>
-            </div>
-            <div class="list-item">
-                <strong>Grade Level/Audience:</strong>
-                <p style="margin-top: 4px;">${meta.grade_level_or_audience || 'N/A'}</p>
-            </div>
-            <div class="list-item">
-                <strong>Spiral Position:</strong>
-                <p style="margin-top: 4px;">${meta.spiral_position || 'N/A'}</p>
-            </div>
-            ${meta.related_chapters && meta.related_chapters.length > 0 ? `
-                <div class="list-item">
-                    <strong>Related Chapters:</strong>
-                    <ul style="margin-top: 8px; padding-left: 20px;">
-                        ${meta.related_chapters.map(ch => `<li>${ch}</li>`).join('')}
-                    </ul>
-                </div>
-            ` : ''}
+            <p class="text-sm font-medium text-gray-900 dark:text-white">${p.statement}</p>
+            ${p.evidence_from_text ? `<p class="text-xs text-gray-600 dark:text-gray-400 mt-2">${p.evidence_from_text}</p>` : ''}
         </div>
+    `).join('') || '<p class="text-sm text-gray-500 dark:text-gray-400">No propositions found</p>';
+}
+
+function renderAnalytics(data) {
+    const meta = data.analytical_metadata || {};
+    document.getElementById('analyticsContent').innerHTML = `
+        <p><strong>Subject Domain:</strong> ${meta.subject_domain || 'N/A'}</p>
+        <p><strong>Curriculum Unit:</strong> ${meta.curriculum_unit || 'N/A'}</p>
+        <p><strong>Disciplinary Lens:</strong> ${meta.disciplinary_lens || 'N/A'}</p>
+        <p><strong>Grade Level:</strong> ${meta.grade_level_or_audience || 'N/A'}</p>
     `;
 }
 
-// Render Pedagogy Tab
 function renderPedagogy(data) {
     const ped = data.pedagogical_mapping || {};
 
-    // Learning Objectives
-    const objectives = document.getElementById('pedagogyObjectives');
-    if (ped.learning_objectives && ped.learning_objectives.length > 0) {
-        objectives.innerHTML = '<ol style="padding-left: 20px;">' +
-            ped.learning_objectives.map(obj => `<li style="margin-bottom: 8px;">${obj}</li>`).join('') +
-            '</ol>';
-    } else {
-        objectives.innerHTML = '<p style="color: var(--gray-600);">No learning objectives found</p>';
-    }
+    document.getElementById('pedagogyObjectives').innerHTML = (ped.learning_objectives || []).map(obj => `
+        <li class="text-sm text-gray-700 mb-2">${obj}</li>
+    `).join('') ? `<ol class="list-decimal list-inside">${(ped.learning_objectives || []).map(obj => `<li class="text-sm text-gray-700 mb-2">${obj}</li>`).join('')}</ol>` : '<p class="text-sm text-gray-500">No objectives found</p>';
 
-    // Chapter Summary
-    const summary = document.getElementById('pedagogySummary');
-    if (ped.chapter_summary) {
-        summary.innerHTML = `<p>${ped.chapter_summary}</p>`;
-    } else {
-        summary.innerHTML = '<p style="color: var(--gray-600);">No chapter summary available</p>';
-    }
+    document.getElementById('pedagogySummary').innerHTML = `<p class="text-sm text-gray-700">${ped.chapter_summary || 'No summary available'}</p>`;
 
-    // Discussion Questions
-    const discussion = document.getElementById('pedagogyDiscussion');
-    if (ped.potential_discussion_questions && ped.potential_discussion_questions.length > 0) {
-        discussion.innerHTML = '<ol style="padding-left: 20px;">' +
-            ped.potential_discussion_questions.map(q => `<li style="margin-bottom: 8px;">${q}</li>`).join('') +
-            '</ol>';
-    } else {
-        discussion.innerHTML = '<p style="color: var(--gray-600);">No discussion questions generated</p>';
-    }
+    document.getElementById('pedagogyDiscussion').innerHTML = (ped.potential_discussion_questions || []).map(q => `
+        <li class="text-sm text-gray-700 mb-2">${q}</li>
+    `).join('') ? `<ol class="list-decimal list-inside">${(ped.potential_discussion_questions || []).map(q => `<li class="text-sm text-gray-700 mb-2">${q}</li>`).join('')}</ol>` : '<p class="text-sm text-gray-500">No questions found</p>';
 }
 
-// Render Activities Tab
 function renderActivities(data) {
-    const activities = document.getElementById('activitiesContent');
     const acts = data.pedagogical_mapping?.student_activities || [];
-
-    if (acts.length > 0) {
-        activities.innerHTML = acts.map(activity => `
-            <div class="activity-item">
-                <span class="item-badge">${activity.activity_type || 'Activity'}</span>
-                <p>${activity.description || ''}</p>
-                ${activity.location ? `<p class="item-location">📍 ${activity.location}</p>` : ''}
-            </div>
-        `).join('');
-    } else {
-        activities.innerHTML = '<p style="color: var(--gray-600);">No student activities found</p>';
-    }
+    document.getElementById('activitiesContent').innerHTML = acts.map(a => `
+        <div class="mb-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs font-semibold rounded">${a.activity_type || 'Activity'}</span>
+            <p class="text-sm text-gray-700 dark:text-gray-300 mt-2">${a.description || ''}</p>
+        </div>
+    `).join('') || '<p class="text-sm text-gray-500 dark:text-gray-400">No activities found</p>';
 }
 
-// Render Questions Tab
 function renderQuestions(data) {
-    const questions = document.getElementById('questionsContent');
     const qs = data.pedagogical_mapping?.assessment_questions || [];
-
-    if (qs.length > 0) {
-        questions.innerHTML = qs.map(q => `
-            <div class="question-item">
-                <span class="item-badge">${q.question_type || 'Question'}</span>
-                <p><strong>Q:</strong> ${q.question || ''}</p>
-                ${q.location ? `<p class="item-location">📍 ${q.location}</p>` : ''}
-            </div>
-        `).join('');
-    } else {
-        questions.innerHTML = '<p style="color: var(--gray-600);">No assessment questions found</p>';
-    }
+    document.getElementById('questionsContent').innerHTML = qs.map(q => `
+        <div class="mb-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <span class="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs font-semibold rounded">${q.question_type || 'Question'}</span>
+            <p class="text-sm text-gray-700 dark:text-gray-300 mt-2"><strong>Q:</strong> ${q.question || ''}</p>
+        </div>
+    `).join('') || '<p class="text-sm text-gray-500 dark:text-gray-400">No questions found</p>';
 }
 
-// Render Review Tab
-function renderReview(data) {
-    const review = document.getElementById('reviewContent');
-    const reviews = data.pedagogical_mapping?.review_sections || [];
-
-    if (reviews.length > 0) {
-        review.innerHTML = reviews.map(r => `
-            <div class="list-item" style="margin-bottom: 12px;">
-                <p>${r.content || ''}</p>
-                ${r.location ? `<p class="item-location">📍 ${r.location}</p>` : ''}
-            </div>
-        `).join('');
-    } else {
-        review.innerHTML = '<p style="color: var(--gray-600);">No review sections found</p>';
-    }
-}
-
-// Render Visual Media Tab
-function renderVisual(data) {
-    const visual = document.getElementById('visualContent');
-    const media = data.pedagogical_mapping?.visual_media_references || [];
-
-    if (media.length > 0) {
-        visual.innerHTML = media.map(v => `
-            <div class="list-item" style="margin-bottom: 12px;">
-                <strong>${v.reference || 'Visual'}</strong>
-                <p style="margin-top: 4px; font-size: 14px;">${v.description || ''}</p>
-                ${v.pedagogical_purpose ? `<p style="margin-top: 4px; font-size: 13px; color: var(--gray-600);"><em>Purpose: ${v.pedagogical_purpose}</em></p>` : ''}
-            </div>
-        `).join('');
-    } else {
-        visual.innerHTML = '<p style="color: var(--gray-600);">No visual media references found</p>';
-    }
-}
-
-// Render Propositions Tab
-function renderPropositions(data) {
-    const propositions = document.getElementById('propositionsList');
-    const props = data.propositional_extraction?.propositions || [];
-
-    if (props.length > 0) {
-        propositions.innerHTML = props.map((prop, i) => `
-            <div class="list-item" style="margin-bottom: 16px;">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">#${i + 1}</span>
-                    ${prop.truth_type ? `<span style="background: var(--gray-200); padding: 2px 8px; border-radius: 4px; font-size: 12px;">${prop.truth_type}</span>` : ''}
-                </div>
-                <p><strong>${prop.statement}</strong></p>
-                ${prop.evidence_from_text ? `<p style="margin-top: 8px; font-size: 14px; color: var(--gray-600);">${prop.evidence_from_text}</p>` : ''}
-                ${prop.implication_for_learning ? `<p style="margin-top: 8px; font-size: 14px; font-style: italic;">💡 ${prop.implication_for_learning}</p>` : ''}
-            </div>
-        `).join('');
-    } else {
-        propositions.innerHTML = '<p style="color: var(--gray-600);">No propositions extracted</p>';
-    }
-}
-
-// Render Temporal Tab
 function renderTemporal(data) {
-    const temporal = document.getElementById('temporalContent');
     const temp = data.pedagogical_mapping?.temporal_analysis || {};
-
-    if (temp.temporal_range) {
-        temporal.innerHTML = `
-            <div class="list-item">
-                <p style="font-size: 18px; font-weight: 600; color: var(--primary);">
-                    ${temp.temporal_range}
-                </p>
-                <p style="font-size: 14px; color: var(--gray-600); margin-top: 8px;">
-                    This chapter spans content from ${temp.temporal_range}
-                </p>
-            </div>
-        `;
-    } else {
-        temporal.innerHTML = '<p style="color: var(--gray-600);">No temporal range information available</p>';
-    }
+    document.getElementById('temporalContent').innerHTML = `
+        <p class="text-lg font-semibold text-blue-600 dark:text-blue-400">${temp.temporal_range || 'N/A'}</p>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Content spans from ${temp.temporal_range || 'unknown period'}</p>
+    `;
 }
 
-// Render Historical Tab
-function renderHistorical(data) {
-    const historical = document.getElementById('historicalContent');
-    const examples = data.pedagogical_mapping?.temporal_analysis?.historical_examples || [];
-
-    if (examples.length > 0) {
-        historical.innerHTML = examples.map(ex => `
-            <div class="example-item">
-                <p><strong>${ex.example}</strong></p>
-                <p style="font-size: 14px; color: var(--gray-600); margin-top: 4px;">📅 ${ex.time_period || 'Unknown period'}</p>
-                ${ex.still_relevant !== undefined ? `
-                    <p style="font-size: 13px; margin-top: 4px;">
-                        ${ex.still_relevant ? '✅ Still relevant' : '⚠️ May be outdated'}
-                    </p>
-                ` : ''}
-            </div>
-        `).join('');
-    } else {
-        historical.innerHTML = '<p style="color: var(--gray-600);">No historical examples found</p>';
-    }
-}
-
-// Render Contemporary Tab
-function renderContemporary(data) {
-    const contemporary = document.getElementById('contemporaryContent');
-    const examples = data.pedagogical_mapping?.temporal_analysis?.contemporary_examples || [];
-
-    if (examples.length > 0) {
-        contemporary.innerHTML = examples.map(ex => `
-            <div class="example-item">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
-                    <p><strong>${ex.example}</strong></p>
-                    ${ex.update_priority ? `
-                        <span class="item-badge priority-${ex.update_priority}">
-                            ${ex.update_priority.toUpperCase()} PRIORITY
-                        </span>
-                    ` : ''}
-                </div>
-                <p style="font-size: 14px; color: var(--gray-600);">📅 Current as of: ${ex.current_as_of || 'Unknown'}</p>
-            </div>
-        `).join('');
-    } else {
-        contemporary.innerHTML = '<p style="color: var(--gray-600);">No contemporary examples found</p>';
-    }
-}
-
-// Render Raw JSON Tab
 function renderRawJson(data) {
-    const rawJson = document.getElementById('rawJson');
-    rawJson.textContent = JSON.stringify(data, null, 2);
+    document.getElementById('rawJson').textContent = JSON.stringify(data, null, 2);
 }
 
-// Tab Switching
+// Tab switching
 document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => {
         const target = tab.dataset.tab;
 
-        // Update active tab
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
+        // Update tabs
+        document.querySelectorAll('.tab').forEach(t => {
+            t.classList.remove('bg-gradient-to-r', 'from-blue-600', 'to-purple-600', 'dark:from-blue-500', 'dark:to-purple-500', 'text-white', 'shadow-lg');
+            t.classList.add('text-gray-600', 'dark:text-gray-400');
+        });
+        tab.classList.add('bg-gradient-to-r', 'from-blue-600', 'to-purple-600', 'dark:from-blue-500', 'dark:to-purple-500', 'text-white', 'shadow-lg');
+        tab.classList.remove('text-gray-600', 'dark:text-gray-400');
 
-        // Update active panel
-        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-        document.getElementById(target).classList.add('active');
+        // Update panels
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+        document.getElementById(target).classList.remove('hidden');
     });
 });
 
-// Copy JSON Button
-copyJsonBtn.addEventListener('click', () => {
-    const text = document.getElementById('rawJson').textContent;
-    navigator.clipboard.writeText(text).then(() => {
-        const originalText = copyJsonBtn.textContent;
-        copyJsonBtn.textContent = 'Copied!';
-        setTimeout(() => {
-            copyJsonBtn.textContent = originalText;
-        }, 2000);
+// Copy JSON
+if (copyJsonBtn) {
+    copyJsonBtn.addEventListener('click', () => {
+        const text = document.getElementById('rawJson').textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            const original = copyJsonBtn.textContent;
+            copyJsonBtn.textContent = 'Copied!';
+            setTimeout(() => copyJsonBtn.textContent = original, 2000);
+        });
     });
+}
+
+// New analysis buttons
+[newAnalysisBtn, homeBtn].forEach(btn => {
+    if (btn) {
+        btn.addEventListener('click', () => {
+            resultsSection.classList.add('hidden');
+            uploadSection.classList.remove('hidden');
+            uploadForm.classList.remove('hidden');
+            processingStatus.classList.add('hidden');
+            uploadForm.reset();
+            fileName.classList.add('hidden');
+        });
+    }
 });
 
-// New Analysis Button
-newAnalysisBtn.addEventListener('click', () => {
-    resultsSection.classList.add('hidden');
-    uploadSection.style.display = 'block';
-    uploadForm.style.display = 'block';
-    processingStatus.classList.add('hidden');
-    uploadForm.reset();
-    fileName.classList.remove('show');
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    loadExistingChapters();
 });

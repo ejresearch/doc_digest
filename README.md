@@ -1,20 +1,28 @@
-# Doc Digester v0.2.0
+# GRAFF (Educational Chapter Analysis) v0.2.1
 
-AI-powered educational chapter analysis system with 5-phase processing pipeline, comprehensive pedagogical extraction, and modern web interface.
+AI-powered educational chapter analysis system with 5-phase processing pipeline, comprehensive pedagogical extraction, real-time progress tracking, and modern web interface.
 
 ## Features
 
 - **5-Phase Analysis Pipeline**: Comprehension → Structural Outline → Propositional Extraction → Analytical Metadata → Pedagogical Mapping
+- **Real-Time Progress Tracking**: Server-Sent Events (SSE) stream for live phase-by-phase updates
+- **Background Processing**: Non-blocking async analysis with immediate job_id response
 - **Pedagogical Intelligence**: Extracts learning objectives, student activities, assessment questions, visual media references, and temporal analysis
-- **Modern Web Interface**: Drag-and-drop file upload with tabbed results visualization
+- **Modern Web Interface**:
+  - Drag-and-drop file upload with tabbed results visualization
+  - Dark/light mode toggle with persistent preference
+  - Interactive progress bar with phase indicators
+  - Delete saved analyses with hover-to-reveal buttons
+  - Gradient animations and smooth transitions
 - **Temporal Analysis**: Identifies historical vs contemporary examples and flags content needing updates
-- **File Format Support**: Both `.txt` and `.docx` files with proper text extraction
+- **File Format Support**: `.txt`, `.docx`, and `.pdf` files with proper text extraction
+- **Large File Optimization**: Smart text truncation for 50K+ character documents to prevent timeouts
 - **GPT-4o Powered**: Uses OpenAI's GPT-4o with structured JSON output and automatic retry logic
 - **Comprehensive Error Handling**: Detailed error messages at every layer with proper exception types
 - **Structured Logging**: Full observability with INFO-level logging to console
 - **Phase-by-Phase Validation**: Pydantic validation after each phase + final JSON Schema validation
 - **JSON File Persistence**: Documents automatically saved to `data/chapters/` with timestamps
-- **File Size Protection**: 10MB upload limit with chunked reading
+- **File Size Protection**: 100MB upload limit with chunked reading
 - **Health Check Endpoint**: `/health` for monitoring
 
 ## Quick Start
@@ -38,8 +46,17 @@ open http://localhost:8000
 
 The web interface provides a modern, user-friendly way to analyze educational chapters:
 
-- **Drag & Drop Upload**: Upload `.txt` or `.docx` files
-- **Live Processing Status**: See progress through all 5 phases with animated indicators
+- **Drag & Drop Upload**: Upload `.txt`, `.docx`, or `.pdf` files (up to 100MB)
+- **Real-Time Progress Tracking**: Live SSE stream showing actual phase progress
+  - Animated gradient progress bar with percentage
+  - 5 phase indicators (gray → blue pulsing → green)
+  - Time estimates and status messages
+  - Automatic result loading on completion
+- **Dark/Light Mode**: Toggle with persistent localStorage preference
+- **Manage Analyses**:
+  - View all saved chapter analyses
+  - Delete with hover-to-reveal buttons
+  - Load any previous analysis instantly
 - **Tabbed Results**:
   - **Overview**: Chapter info, quick stats, and key concepts
   - **Pedagogical**: Learning objectives, activities, assessments, discussion questions
@@ -52,10 +69,10 @@ The web interface provides a modern, user-friendly way to analyze educational ch
 
 ### POST /chapters/digest
 
-Process a chapter through the 5-phase analysis pipeline.
+Start background processing of a chapter through the 5-phase analysis pipeline. Returns immediately with a job_id for progress tracking.
 
 **Request** (multipart/form-data):
-- `file`: Text or Word file (required, max 10MB)
+- `file`: Text, Word, or PDF file (required, max 100MB)
 - `chapter_id`: Optional custom chapter ID
 - `file_name`: Optional filename override
 - `author_or_editor`: Optional author information
@@ -66,10 +83,62 @@ Process a chapter through the 5-phase analysis pipeline.
 **Response** (200 OK):
 ```json
 {
-  "chapter_id": "ch-a1b2c3d4e5f6g7h8",
-  "status": "ok",
-  "file_path": "/path/to/data/chapters/ch-xxx_20251022_143022.json",
-  "timestamp": "2025-10-22T14:30:22Z",
+  "job_id": "c41becf1-43c3-4e69-abb7-fac29f480bc8",
+  "status": "processing",
+  "message": "Analysis started. Use the job_id to track progress."
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: Empty file, file too short (<100 chars), encoding error, invalid .docx/.pdf
+- `413 Request Entity Too Large`: File exceeds 100MB
+- `500 Internal Server Error`: Unexpected error during file processing
+
+### GET /chapters/progress/{job_id}
+
+Stream real-time progress updates via Server-Sent Events (SSE).
+
+**Response** (text/event-stream):
+```
+data: {"phase":"phase-1","message":"Analyzing chapter comprehension...","status":"in_progress","timestamp":"2025-10-28T16:22:01Z"}
+
+data: {"phase":"phase-1","message":"Phase 1 complete ✓","status":"in_progress","timestamp":"2025-10-28T16:22:21Z"}
+
+data: {"phase":"phase-2","message":"Building structural outline...","status":"in_progress","timestamp":"2025-10-28T16:22:21Z"}
+
+...
+
+data: {"phase":"completed","message":"Analysis complete!","status":"completed","timestamp":"2025-10-28T16:30:15Z"}
+```
+
+Stream automatically closes after 2 minutes or when status becomes "completed" or "error".
+
+### GET /chapters/list
+
+List all saved chapter analyses.
+
+**Response** (200 OK):
+```json
+{
+  "chapters": [
+    {
+      "filename": "ch-001_20251028_143022.json",
+      "chapter_id": "ch-001",
+      "version": "v25",
+      "source_text": "Introduction to Communication",
+      "created_at": "2025-10-28T14:30:22Z"
+    }
+  ]
+}
+```
+
+### GET /chapters/{filename}
+
+Retrieve a specific chapter analysis.
+
+**Response** (200 OK):
+```json
+{
   "system_metadata": { ... },
   "comprehension_pass": { ... },
   "structural_outline": { ... },
@@ -80,10 +149,25 @@ Process a chapter through the 5-phase analysis pipeline.
 ```
 
 **Error Responses**:
-- `400 Bad Request`: Empty file, file too short (<100 chars), encoding error, or invalid .docx
-- `413 Request Entity Too Large`: File exceeds 10MB
-- `422 Unprocessable Entity`: Validation failed (with detailed error messages)
-- `500 Internal Server Error`: Pipeline or storage failure
+- `404 Not Found`: Chapter file doesn't exist
+- `500 Internal Server Error`: Failed to load chapter
+
+### DELETE /chapters/{filename}
+
+Delete a saved chapter analysis.
+
+**Response** (200 OK):
+```json
+{
+  "message": "Chapter deleted successfully",
+  "filename": "ch-001_20251028_143022.json"
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: Invalid filename (path traversal attempt)
+- `404 Not Found`: Chapter file doesn't exist
+- `500 Internal Server Error`: Failed to delete chapter
 
 ### GET /
 
@@ -254,10 +338,22 @@ Phase 5 includes sophisticated temporal tracking:
 - Reduces file size significantly (944KB .docx → 220KB text)
 - **Note**: Tables, images, and complex formatting are not preserved
 
+### PDF (.pdf)
+- Automatically extracts text using `PyPDF2`
+- Processes all pages and combines text
+- Works with standard text-based PDFs
+- **Note**: Scanned PDFs without OCR will extract poorly
+
 **File Size Limits**:
-- Max upload: 10MB
+- Max upload: 100MB
 - Recommended: Keep chapters under 200KB of actual text (~50K tokens)
-- Files exceeding GPT-4o's 128K context window will fail
+- Large documents (>50K characters) automatically use smart truncation:
+  - Phase 1: Full text (comprehension analysis needs complete content)
+  - Phase 2: First 50K characters + comprehension results
+  - Phase 3: First 50K characters + comprehension + structure
+  - Phase 5: First 30K + last 20K characters (captures objectives + summaries)
+
+This intelligent truncation prevents timeouts while maintaining analysis quality by leveraging previously extracted structured data.
 
 ## Error Handling
 
@@ -286,7 +382,34 @@ The system has been carefully tuned to prevent AI hallucination:
 - Uses location markers to tie extractions to specific sections
 - High precision mode to avoid inferring activities that don't exist
 
-## Changes from v0.1.0
+## Changes from v0.2.0 to v0.2.1
+
+### Major Features
+- ✅ **Real-Time Progress Tracking** - Server-Sent Events (SSE) for live phase updates
+- ✅ **Background Processing** - Non-blocking async analysis with immediate job_id response
+- ✅ **PDF Support** - Extract text from PDF files using PyPDF2
+- ✅ **Dark/Light Mode** - Theme toggle with persistent localStorage preference
+- ✅ **Delete Functionality** - Remove saved analyses with hover-to-reveal buttons
+- ✅ **Smart Text Truncation** - Prevent timeouts on large documents (>50K characters)
+- ✅ **100MB File Limit** - Increased from 10MB to support larger documents
+
+### Technical Improvements
+- ✅ Background task processing with `asyncio.create_task()`
+- ✅ SSE streaming endpoint `/chapters/progress/{job_id}`
+- ✅ Intelligent text truncation per phase (50K chars for phases 2-3, 30K+20K for phase 5)
+- ✅ CRUD endpoints: GET/DELETE `/chapters/{filename}`, GET `/chapters/list`
+- ✅ Enhanced progress UI with animated gradient bar and phase indicators
+- ✅ Tailwind CSS migration with gradient animations
+- ✅ EventSource integration for real-time frontend updates
+- ✅ Path traversal protection in delete endpoint
+
+### Bug Fixes
+- ✅ Fixed Phase 2/3/5 timeouts on large documents (218K+ characters)
+- ✅ Fixed file selection display issues (click-to-browse not working)
+- ✅ Fixed progress tracking showing fake simulated data
+- ✅ Increased timeout from 60s to 180s and retries from 3 to 5
+
+## Changes from v0.1.0 to v0.2.0
 
 ### Major Features
 - ✅ **Phase 5: Pedagogical Mapping** - New comprehensive learning support extraction
