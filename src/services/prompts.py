@@ -11,179 +11,248 @@ Each phase includes:
 from typing import Dict, Any
 
 # =============================================================================
-# PHASE 1: COMPREHENSION PASS (WHO/WHAT/WHEN/WHY/HOW)
+# PHASE 1: OUTLINE & UNIT EXTRACTION
 # =============================================================================
 
-PHASE_1_SYSTEM_PROMPT = """You are an expert educational content analyst with deep experience in curriculum design and pedagogy.
+PHASE_1_SYSTEM_PROMPT = """You are an expert content structuralist who extracts hierarchical chapter organization and generates searchable keywords.
 
-YOUR ROLE: Read as a TEACHER preparing to teach unfamiliar material for the first time.
+YOUR ROLE: Map the chapter's complete hierarchical structure and break it into queryable content units.
 
-CORE MISSION: Extract ALL information that would help a teacher understand and effectively teach this content to students.
+CORE MISSION: Create a comprehensive outline with content units that can be:
+- Searched by keywords
+- Queried by hierarchy (chapter → section → subsection)
+- Used as anchors for propositions and examples
+- Navigated by learners and LLM tutors
 
 READING APPROACH:
-1. First pass: Orient yourself - who are the actors, what are the ideas, when/where does this exist?
-2. Second pass: Analyze deeply - why does this matter, how is it being taught?
-3. Third pass: Find evidence - locate specific text that supports each extraction
+1. Identify the complete hierarchical structure (chapter → sections → subsections → sub-subsections)
+2. For each structural element, create a content unit with:
+   - Unique identifier
+   - Hierarchical position (parent, depth, sequence)
+   - Representative text snippet
+   - 3-7 searchable keywords
+3. Preserve the natural organization of the content
 
 QUALITY STANDARDS:
-- Completeness: Extract EVERY significant entity, concept, and context (do not limit yourself)
-- Accuracy: Only claim what the text actually says - quote or paraphrase directly
-- Evidence: ALWAYS provide specific text locations (paragraph numbers, section headers, page references)
-- Pedagogical Focus: Emphasize what helps teaching and learning, not just content summary
-- Thoroughness: Better to have 20 well-documented items than 5 vague ones
+- Completeness: Extract EVERY section, subsection, and structural division
+- Precision: Keywords should be specific, searchable terms (not generic words)
+- Hierarchy: Correctly identify parent-child relationships
+- Snippets: Extract meaningful representative text (100-300 characters)
 
 CRITICAL RULES:
-- Use null ONLY when the field is truly not applicable to this chapter
-- If you're unsure, extract it anyway and note the uncertainty in significance/importance
-- Evidence pointers must be VERY SPECIFIC (e.g., "Section 1.2, paragraph 3" not just "early in chapter")
-- Prefer direct quotes or close paraphrases over summaries
+- Every structural element becomes a content unit
+- unit_id format: "unit_{chapter}_{section}_{subsection}" (e.g., "unit_3_2", "unit_3_2_1")
+- depth_level: 0=chapter, 1=section, 2=subsection, 3=sub-subsection
+- Keywords: Domain-specific terminology, concepts, proper nouns (not "the", "and", "introduction")
+- unit_type: "chapter", "section", "subsection", "concept", or "activity"
 
 OUTPUT: Valid JSON only, matching the provided schema exactly."""
 
 
 PHASE_1_READING_STRATEGY = """
-=== READING STRATEGY: First Comprehensive Read ===
+=== READING STRATEGY: Structural Mapping ===
 
-Read this chapter AS A TEACHER doing your first careful read before teaching:
+Read this chapter AS A CONTENT ARCHITECT mapping its hierarchical organization:
 
-**WHO - Identify ALL Entities:**
-- People: Authors, scientists, historical figures, theorists
-- Organizations: Institutions, movements, groups
-- Concepts personified: Abstract ideas treated as actors
-- For EACH entity note:
-  * Their role or function in the context
-  * Why they're significant for student learning
-  * Exactly where in the text they appear
+**STEP 1: Identify Chapter Structure**
+- What is the chapter number and title?
+- What are the major sections (typically marked with headers)?
+- How many levels of hierarchy exist? (section → subsection → sub-subsection?)
 
-**WHAT - Identify ALL Core Concepts:**
-- Main ideas students MUST understand
-- Definitions and terminology introduced
-- Theories, models, frameworks presented
-- Processes or mechanisms explained
-- For EACH concept note:
-  * Clear definition or description
-  * Why it's important for learning
-  * Specific evidence location
+**STEP 2: Map Hierarchical Relationships**
+For each structural element:
+- What is its parent? (e.g., section 3.2 is parent of subsection 3.2.1)
+- What is its depth level? (chapter=0, section=1, subsection=2, etc.)
+- What is its sequence order among siblings? (first section, second section, etc.)
 
-**WHEN - Establish ALL Temporal Context:**
-- Historical context: When did this happen/exist in history?
-- Cultural context: What cultural moment does this reflect?
-- Chronological sequence: Where in the course/curriculum does this fit?
-- Presentation timing: When does the student encounter this?
+**STEP 3: Extract Representative Content**
+For each unit:
+- Text snippet: 100-300 character excerpt that represents this unit's focus
+- Choose the opening sentences or most descriptive passage
+- Should give a clear sense of what this unit covers
 
-**WHY - Determine ALL Significance:**
-- Intellectual value: What thinking skills does this develop?
-- Knowledge value: What factual understanding does this provide?
-- Moral/philosophical significance: What values or questions arise?
+**STEP 4: Generate Keywords**
+For each unit, identify 3-7 keywords:
+- Domain-specific terminology (e.g., "vertical integration", "block booking")
+- Key concepts introduced (e.g., "studio system", "profit margins")
+- Proper nouns (e.g., "MGM", "Hollywood", "Supreme Court")
+- Technical terms (e.g., "monopoly", "antitrust", "distribution")
+- Avoid generic words (e.g., "the", "and", "chapter", "introduction")
 
-**HOW - Analyze Presentation Approach:**
-- Presentation style: Narrative, expository, analytical, procedural?
-- Rhetorical approach: Persuasive, informative, exploratory?
-- Recommended student strategy: How should students approach learning this?
+**STEP 5: Classify Unit Type**
+- "chapter": Top-level chapter unit
+- "section": Major section within chapter
+- "subsection": Subsection within a section
+- "concept": Focused explanation of a single concept
+- "activity": Student activity, exercise, or reflection prompt
 
-Extract EVERYTHING - this is a comprehensive first read, not a summary.
+Extract EVERY structural element - this creates the navigation framework.
 """
 
 
 PHASE_1_SCHEMA_GUIDE = """
 === SCHEMA FIELD GUIDE ===
 
-**"who"** - Array of ALL entities (people, organizations, conceptual actors):
-  • "entity": Full name or proper noun (e.g., "Guido van Rossum" not "van Rossum")
-  • "role_or_function": What they do/did (e.g., "Creator and original designer of Python")
-  • "significance_in_chapter": Why they matter HERE specifically (e.g., "Establishes historical context and credibility of Python's design philosophy")
-  • "evidence_pointer": VERY SPECIFIC location (e.g., "Introduction, paragraph 2, sentence 1" or "Section 1.1, lines 3-5")
-  → Extract ALL entities mentioned, even if minor (better to have too many than miss important ones)
+**"content_units"** - Array of ALL structural elements:
 
-**"what"** - Array of ALL concepts, topics, ideas:
-  • "concept_or_topic": The idea itself (e.g., "Dynamic typing")
-  • "definition_or_description": What it IS, in the chapter's words (e.g., "Variables do not require explicit type declarations; types are inferred at runtime")
-  • "importance": Why students need to know this (e.g., "Fundamental to Python's ease of use; affects how students write code")
-  • "evidence_pointer": Exact location (e.g., "Section 2.3, paragraph 1, lines 1-3")
-  → Extract EVERY concept taught, no matter how small
+  Each unit object contains:
 
-**"when"** - Object with temporal context:
-  • "historical_or_cultural_context": When/where in history or culture (e.g., "First released 1991; emerged during rise of object-oriented programming in early 90s")
-  • "chronological_sequence_within_course": Where in learning progression (e.g., "Introductory chapter; assumes no prior programming knowledge; prepares for variables and control flow")
-  • "moment_of_presentation_to_reader": When student encounters this (e.g., "First chapter; student's initial exposure to programming concepts")
-  → Be specific about ALL temporal dimensions
+  • "unit_id" (string, required): Unique identifier
+    - Format: "unit_{chapter}_{section}_{subsection}"
+    - Examples: "unit_3", "unit_3_2", "unit_3_2_1"
+    - Chapter-level: "unit_3"
+    - Section-level: "unit_3_2"
+    - Subsection-level: "unit_3_2_1"
 
-**"why"** - Object explaining significance:
-  • "intellectual_value": Thinking skills developed (e.g., "Develops abstraction thinking; understanding of how code translates to machine operations")
-  • "knowledge_based_value": Facts/skills gained (e.g., "Foundation for all subsequent Python programming; necessary for understanding variables, functions, control flow")
-  • "moral_or_philosophical_significance": Values/questions (e.g., "Code readability as ethical practice; accessibility of programming to wider audiences")
-  → Dig deep - why does THIS chapter exist in the curriculum?
+  • "chapter" (string, required): Chapter number or identifier
+    - Examples: "3", "Chapter 3", "03"
 
-**"how"** - Object describing presentation and learning:
-  • "presentation_style": How it's written (e.g., "Expository with narrative elements; introduces concepts then provides examples; uses analogies to familiar concepts")
-  • "rhetorical_approach": How it persuades/teaches (e.g., "Informative and encouraging; emphasizes ease of learning; positions Python as accessible")
-  • "recommended_student_strategy": How to learn this (e.g., "Read for overview first; try example code immediately; focus on understanding concepts before memorizing syntax")
-  → Describe the pedagogical approach in detail
+  • "section" (string, nullable): Section identifier
+    - Examples: "3.1", "3.2", "Section A"
+    - null for chapter-level units
 
-**NULL USAGE:**
-- Only use null if that dimension truly does not exist for this chapter
-- If uncertain, extract it and note the uncertainty in the significance/importance field
-- Example: A math chapter might have null for "who" if no people are mentioned
-- Default to extracting rather than omitting
+  • "parent_unit_id" (string, nullable): Parent unit's identifier
+    - Examples: "unit_3" (for section 3.2), "unit_3_2" (for subsection 3.2.1)
+    - null for chapter-level units (they have no parent)
+
+  • "depth_level" (integer, required): Hierarchical depth
+    - 0 = chapter
+    - 1 = section
+    - 2 = subsection
+    - 3 = sub-subsection
+
+  • "sequence_order" (integer, required): Order among siblings
+    - First child = 1, second child = 2, etc.
+    - Chapter 3 might be sequence_order = 3
+    - Section 3.2 among Chapter 3's sections is sequence_order = 2
+
+  • "text_snippet" (string, required): Representative excerpt
+    - 100-300 characters
+    - Opening sentences or most descriptive passage
+    - Should convey what this unit covers
+
+  • "keywords" (array of strings, required): 3-7 searchable terms
+    - Domain-specific terminology
+    - Key concepts
+    - Proper nouns
+    - Technical terms
+    - NO generic words ("the", "and", "chapter")
+
+  • "unit_type" (string, required): Classification
+    - "chapter" - Top-level chapter
+    - "section" - Major section
+    - "subsection" - Subsection within section
+    - "concept" - Focused concept explanation
+    - "activity" - Student exercise or activity
+
+**EXAMPLE HIERARCHY:**
+```
+unit_3 (chapter, depth=0, parent=null)
+  ├─ unit_3_1 (section, depth=1, parent=unit_3, sequence=1)
+  ├─ unit_3_2 (section, depth=1, parent=unit_3, sequence=2)
+  │   ├─ unit_3_2_1 (subsection, depth=2, parent=unit_3_2, sequence=1)
+  │   └─ unit_3_2_2 (subsection, depth=2, parent=unit_3_2, sequence=2)
+  └─ unit_3_3 (section, depth=1, parent=unit_3, sequence=3)
+```
+
+**COMPLETENESS:**
+- Extract EVERY structural element (every section, every subsection)
+- Do not skip levels in the hierarchy
+- Preserve the natural organization of the content
 """
 
 
 PHASE_1_EXAMPLE = """{
-  "who": [
+  "content_units": [
     {
-      "entity": "Guido van Rossum",
-      "role_or_function": "Creator and Benevolent Dictator For Life (BDFL) of Python programming language; designed Python's syntax and philosophy",
-      "significance_in_chapter": "Establishes Python's origins and design philosophy; provides historical credibility; introduces concept of intentional language design for readability",
-      "evidence_pointer": "Introduction, paragraph 2, sentences 1-2: 'Created by Guido van Rossum and first released in 1991...'"
+      "unit_id": "unit_3",
+      "chapter": "3",
+      "section": null,
+      "parent_unit_id": null,
+      "depth_level": 0,
+      "sequence_order": 3,
+      "text_snippet": "The Studio System and Technological Change (1920-1960). This chapter examines how the major Hollywood studios consolidated power through vertical integration and how technological innovations both strengthened and eventually undermined their control.",
+      "keywords": ["studio system", "Hollywood", "vertical integration", "technological change", "1920-1960"],
+      "unit_type": "chapter"
     },
     {
-      "entity": "Python Software Foundation",
-      "role_or_function": "Organization that maintains and promotes Python; manages open-source development",
-      "significance_in_chapter": "Shows Python has institutional support and active community; relevant for understanding Python's continued evolution",
-      "evidence_pointer": "Section 1.3 'Community and Support', paragraph 1"
+      "unit_id": "unit_3_1",
+      "chapter": "3",
+      "section": "3.1",
+      "parent_unit_id": "unit_3",
+      "depth_level": 1,
+      "sequence_order": 1,
+      "text_snippet": "The Rise of the Major Studios. By the 1920s, five major studios (MGM, Paramount, Warner Bros., 20th Century Fox, RKO) and three minor studios (Universal, Columbia, United Artists) dominated American film production and distribution.",
+      "keywords": ["major studios", "MGM", "Paramount", "Warner Bros", "oligopoly", "1920s"],
+      "unit_type": "section"
+    },
+    {
+      "unit_id": "unit_3_2",
+      "chapter": "3",
+      "section": "3.2",
+      "parent_unit_id": "unit_3",
+      "depth_level": 1,
+      "sequence_order": 2,
+      "text_snippet": "Vertical Integration and Block Booking. The major studios controlled every stage of the film industry: production, distribution, and exhibition. This vertical integration allowed them to guarantee revenue through practices like block booking.",
+      "keywords": ["vertical integration", "block booking", "distribution", "exhibition", "monopoly"],
+      "unit_type": "section"
+    },
+    {
+      "unit_id": "unit_3_2_1",
+      "chapter": "3",
+      "section": "3.2.1",
+      "parent_unit_id": "unit_3_2",
+      "depth_level": 2,
+      "sequence_order": 1,
+      "text_snippet": "Production Control. Studios maintained large staffs of contract players, directors, writers, and technicians. The studio controlled all aspects of filmmaking from script development through post-production.",
+      "keywords": ["production control", "contract players", "studio contracts", "filmmaking", "creative control"],
+      "unit_type": "subsection"
+    },
+    {
+      "unit_id": "unit_3_2_2",
+      "chapter": "3",
+      "section": "3.2.2",
+      "parent_unit_id": "unit_3_2",
+      "depth_level": 2,
+      "sequence_order": 2,
+      "text_snippet": "Distribution Networks. Studios owned their own distribution companies, giving them control over which films reached theaters and when. This control extended to international markets as well as domestic.",
+      "keywords": ["distribution", "film distribution", "distribution companies", "international markets", "theatrical release"],
+      "unit_type": "subsection"
+    },
+    {
+      "unit_id": "unit_3_2_3",
+      "chapter": "3",
+      "section": "3.2.3",
+      "parent_unit_id": "unit_3_2",
+      "depth_level": 2,
+      "sequence_order": 3,
+      "text_snippet": "Theater Ownership and Block Booking. The five majors owned the most profitable first-run theaters in major cities. They forced independent theaters to accept 'blocks' of films—packages that included both desirable A-pictures and less desirable B-movies.",
+      "keywords": ["theater ownership", "block booking", "first-run theaters", "A-pictures", "B-movies", "independent theaters"],
+      "unit_type": "subsection"
+    },
+    {
+      "unit_id": "unit_3_3",
+      "chapter": "3",
+      "section": "3.3",
+      "parent_unit_id": "unit_3",
+      "depth_level": 1,
+      "sequence_order": 3,
+      "text_snippet": "The Introduction of Sound and Color. Technological innovations in the late 1920s (sound) and 1930s (Technicolor) initially strengthened studio control by requiring massive capital investments, but also changed audience expectations and production practices.",
+      "keywords": ["sound technology", "Technicolor", "technological innovation", "talkies", "color film"],
+      "unit_type": "section"
+    },
+    {
+      "unit_id": "unit_3_4",
+      "chapter": "3",
+      "section": "3.4",
+      "parent_unit_id": "unit_3",
+      "depth_level": 1,
+      "sequence_order": 4,
+      "text_snippet": "Television's Impact and the Decline of the Studio System. The rise of television in the 1950s, combined with the 1948 Paramount antitrust decision forcing studios to divest their theater chains, led to the collapse of the classical studio system.",
+      "keywords": ["television", "Paramount decision", "antitrust", "divestiture", "studio decline", "1950s"],
+      "unit_type": "section"
     }
-  ],
-  "what": [
-    {
-      "concept_or_topic": "High-level programming language",
-      "definition_or_description": "A programming language with strong abstraction from computer hardware details; closer to human language than machine code; handles memory management automatically",
-      "importance": "Fundamental categorization that explains why Python is easier to learn than C/C++; sets expectations for what students will/won't need to manage manually",
-      "evidence_pointer": "Introduction, paragraph 1, lines 1-2"
-    },
-    {
-      "concept_or_topic": "Interpreted language",
-      "definition_or_description": "Code is executed line-by-line by an interpreter rather than compiled to machine code beforehand; allows interactive execution",
-      "importance": "Explains immediate feedback when running code; foundational for understanding debugging process and REPL usage in later chapters",
-      "evidence_pointer": "Section 1.1 'Key Features', bullet point 2"
-    },
-    {
-      "concept_or_topic": "Dynamic typing",
-      "definition_or_description": "Variable types are determined at runtime rather than declared explicitly by programmer; same variable can hold different types during execution",
-      "importance": "Core feature affecting how students write code; explains flexibility but also potential for type-related errors; contrasts with statically-typed languages",
-      "evidence_pointer": "Section 1.1 'Key Features', paragraph 3, lines 1-4"
-    },
-    {
-      "concept_or_topic": "Code readability philosophy",
-      "definition_or_description": "Python's design principle that code should be easily readable by humans; enforced through significant whitespace and clear syntax",
-      "importance": "Shapes how students will write Python code; emphasizes good programming practices from the start; differentiates Python from other languages",
-      "evidence_pointer": "Introduction, paragraph 3; Section 1.2 'Design Philosophy', entire section"
-    }
-  ],
-  "when": {
-    "historical_or_cultural_context": "First released in 1991 during the rise of object-oriented programming and open-source software movement; emerged as alternative to Perl and Tcl for scripting; gained prominence in 2000s with rise of web development and data science",
-    "chronological_sequence_within_course": "First chapter in introductory programming sequence; assumes no prior programming knowledge; prepares students for variables (Chapter 2), control flow (Chapter 3), and functions (Chapter 4)",
-    "moment_of_presentation_to_reader": "Student's first encounter with programming concepts; introduces vocabulary and mental models needed for entire course; sets expectations for learning approach"
-  },
-  "why": {
-    "intellectual_value": "Develops computational thinking and abstraction skills; introduces concept of human-computer communication; builds mental model of how code instructions translate to computer actions",
-    "knowledge_based_value": "Provides foundation for all subsequent Python programming; establishes vocabulary (interpreter, variable, syntax); necessary prerequisite for variables, functions, and control structures",
-    "moral_or_philosophical_significance": "Code readability as ethical practice - code is read more than written, so clarity benefits others; democratization of programming through accessible language; open-source collaboration as value"
-  },
-  "how": {
-    "presentation_style": "Expository with narrative elements; begins with historical context, then features overview, then applications; uses concrete examples and analogies to familiar concepts; includes visual code samples",
-    "rhetorical_approach": "Informative and encouraging; emphasizes ease of learning to reduce intimidation; positions Python as powerful yet accessible; uses second-person address to engage reader directly",
-    "recommended_student_strategy": "Read for conceptual overview before worrying about syntax details; install Python and try example code immediately to develop experiential understanding; focus on 'why' each feature exists before 'how' to use it; take notes on vocabulary"
-  }
+  ]
 }"""
 
 
@@ -1311,7 +1380,7 @@ PHASE_5_EXAMPLE = """{
 # =============================================================================
 
 def get_phase_1_prompts(chapter_text: str) -> Dict[str, str]:
-    """Get system and user prompts for Phase 1."""
+    """Get system and user prompts for Phase 1: Outline & Unit Extraction."""
     user_prompt = f"""{PHASE_1_READING_STRATEGY}
 
 {PHASE_1_SCHEMA_GUIDE}
@@ -1321,13 +1390,15 @@ def get_phase_1_prompts(chapter_text: str) -> Dict[str, str]:
 
 === YOUR TASK ===
 
-Analyze the following chapter using the reading strategy above.
-Extract ALL entities, concepts, contexts, significance, and presentation approach.
+Map the complete hierarchical structure of this chapter.
+Create content units for EVERY structural element (chapter, sections, subsections).
+For each unit, generate 3-7 searchable keywords.
 
 CHAPTER TEXT:
 {chapter_text}
 
 Respond with valid JSON matching the schema structure shown in the example.
+Output a "content_units" array with ALL structural elements extracted.
 """
 
     return {
@@ -1493,21 +1564,19 @@ def get_phase_5_prompts(chapter_text: str) -> Dict[str, str]:
 
 === YOUR TASK ===
 
-Extract ALL pedagogical elements from this chapter:
+Extract the CORE pedagogical elements from this chapter:
 - Learning objectives (if stated at beginning)
-- Student activities (BYLINE exercises, experiments, observations)
-- Assessment questions (KNOWLEDGE CHECK sections)
-- Chapter summary (end-of-chapter summary)
-- Review sections (REVIEW boxes throughout)
-- Visual/media references (figures, diagrams, tables)
-- Temporal analysis (historical vs. contemporary examples, update priorities)
-- Potential discussion questions (for end-of-chapter reflection)
+- Student activities (BYLINE exercises, experiments, observations, hands-on tasks)
+- Assessment questions (KNOWLEDGE CHECK sections, quiz questions, self-tests)
+- Potential discussion questions (for end-of-chapter reflection and critical thinking)
+
+For all other fields (chapter_summary, review_sections, visual_media_references, temporal_analysis), return empty arrays or null.
 
 CHAPTER TEXT (SAMPLE):
 {truncated_text}{truncation_note}
 
-Respond with valid JSON matching the pedagogical_mapping schema structure shown in the example.
-Extract EVERY pedagogical element - be comprehensive and thorough.
+Respond with valid JSON matching the pedagogical_mapping schema structure.
+Be thorough in extracting the 4 core elements above, but skip other fields.
 """
 
     return {
