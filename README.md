@@ -294,6 +294,173 @@ Final document validated against:
 - Pydantic `ChapterAnalysis` model
 - JSON Schema (Draft 2020-12)
 
+## Pipeline Architecture
+
+GRAFF functions as a **content-to-cognition pipeline** that extracts and structures textbook content into a queryable knowledge base for LLM-powered tutoring systems. The pipeline feeds a database schema organized around **Bloom's Taxonomy** cognitive levels.
+
+```
+📚 TEXTBOOK CHAPTER (Input)
+│
+├─────────────────────────────────────────────────────────────┐
+│                                                             │
+▼                                                             ▼
+┌─────────────────────────────────────────┐    ┌──────────────────────────────────┐
+│  PHASE 1: Outline & Unit Extraction     │    │  PHASE 4: Analytical Metadata    │
+│  (Structural mapping)                   │    │  (Classification & Tagging)      │
+└─────────────────────────────────────────┘    └──────────────────────────────────┘
+│                                                             │
+│ Extracts:                                                   │ Derives:
+│ • Chapter/section hierarchy                                 │ • Subject domain
+│ • Text chunks by section                                    │ • Grade level
+│ • Keywords per unit                                         │ • Prerequisites
+│ • Sequence order                                            │ • Curriculum position
+│                                                             │
+▼                                                             ▼
+DATABASE: content_units                          DATABASE: metadata fields
+├─ unit_id                                      ├─ project_id
+├─ chapter, section                             ├─ domain
+├─ text_snippet                                 ├─ grade_level
+├─ keywords                                     └─ related_chapters
+├─ sequence_order
+└─ depth_level
+         │
+         │
+         ├──────────────────────────────────┐
+         │                                  │
+         ▼                                  ▼
+┌────────────────────────────────┐  ┌─────────────────────────────────┐
+│ PHASE 2: Bloom-Tagged          │  │ PHASE 5: Learning Objectives    │
+│ Proposition Generation         │  │ & Assessment Elements           │
+│ (Multi-level cognitive content)│  │ (Pedagogical scaffolding)       │
+└────────────────────────────────┘  └─────────────────────────────────┘
+│                                                  │
+│ For EACH unit, generates propositions at:        │ Extracts:
+│ • REMEMBER (facts, definitions)                  │ • Learning objectives
+│ • UNDERSTAND (explanations)                      │ • Assessment questions
+│ • APPLY (applications, examples)                 │ • Student activities
+│ • ANALYZE (comparisons, causes)                  │ • Discussion prompts
+│ • EVALUATE (judgments, critiques)                │
+│ • CREATE (novel applications)                    │
+│                                                  │
+▼                                                  ▼
+DATABASE: propositions                DATABASE: learning_objectives
+├─ proposition_id                    ├─ objective_id
+├─ unit_id (FK)                      ├─ objective_text
+├─ proposition_text                  ├─ bloom_level ★
+├─ bloom_level ★                     └─ related_units
+├─ bloom_verb
+└─ evidence_location                 DATABASE: tasks (seed data)
+         │                           ├─ task_id
+         │                           ├─ unit_id (FK)
+         ▼                           ├─ bloom_level ★
+┌────────────────────────────────┐   ├─ generated_text
+│ PHASE 3: Examples &            │   └─ status
+│ Relationships                  │
+│ (Supporting content)           │
+└────────────────────────────────┘
+│
+│ Extracts:
+│ • Concrete examples
+│ • Case studies
+│ • Code samples
+│ • Concept relationships
+│
+▼
+DATABASE: examples
+├─ example_id
+├─ unit_id (FK)
+├─ example_text
+├─ example_type
+└─ illustrates_proposition
+
+DATABASE: concept_relationships
+├─ parent_unit_id
+├─ child_unit_id
+└─ relationship_type
+    (prerequisite, elaborates, contrasts)
+
+════════════════════════════════════════════════════════════════
+
+ALL PHASES COMPLETE → DATABASE POPULATED
+│
+├─ content_units (structure)
+├─ propositions (Bloom-tagged content) ★
+├─ examples (illustrations)
+├─ concept_relationships (dependencies)
+├─ learning_objectives (goals)
+└─ Metadata (domain, grade_level, etc.)
+
+════════════════════════════════════════════════════════════════
+
+DOWNSTREAM PROCESSES
+│
+├─────────────────────┬──────────────────────┬─────────────────────┐
+│                     │                      │                     │
+▼                     ▼                      ▼                     ▼
+TASK GENERATION   LEARNER PATHING    ADAPTIVE TUTORING    COVERAGE TRACKING
+│                     │                      │                     │
+Uses:                 Uses:                  Uses:                 Monitors:
+• propositions        • outline position     • learner_tasks       • Which sections
+  + bloom_level       • bloom_level          • bloom_level           have propositions
+• prompt_templates    • prerequisites        • performance         • Which Bloom levels
+  (by domain)                                  scores                covered per unit
+• bloom_verbs        Guides:                                      • Gaps in higher-
+                     "Finished Apply         Adapts:                order thinking
+Generates:            tasks in 3.2?          "Student failing
+• Study questions     → Move to Analyze       Understand?          Flags:
+• Practice prompts     tasks in 3.3"          → Drop to            "Section 3.4 has
+• Scenarios                                    Remember level"      no Evaluate tasks"
+│                     │                      │                     │
+▼                     ▼                      ▼                     ▼
+DATABASE: tasks   LEARNING PATH UI    🤖 LLM TUTOR          ANALYTICS DASHBOARD
+                                      │
+                                      Queries by:
+                                      • "Get all 'understand'
+                                         propositions for Ch 3"
+                                      • "Get examples for
+                                         unit_3.2"
+                                      • "Get prerequisites
+                                         for this concept"
+                                      │
+                                      Uses to:
+                                      • Answer questions
+                                      • Generate explanations
+                                      • Scaffold learning
+                                      • Check understanding
+                                      • Adapt difficulty
+
+════════════════════════════════════════════════════════════════
+
+LEARNER INTERACTION LOOP
+│
+Student asks question about Ch 3.2
+        ▼
+LLM queries: propositions WHERE unit_id='unit_3.2' AND bloom_level='understand'
+        ▼
+LLM retrieves: examples WHERE unit_id='unit_3.2'
+        ▼
+LLM generates explanation using proposition + example
+        ▼
+Student demonstrates understanding
+        ▼
+LLM queries: tasks WHERE unit_id='unit_3.2' AND bloom_level='apply'
+        ▼
+LLM presents practice scenario
+        ▼
+Student completes task → logged to learner_tasks
+        ▼
+System evaluates: ready for 'analyze' level? → repeat
+```
+
+### Key Pipeline Insights
+
+1. **Phases 1, 3, 5** extract content → populate core database tables
+2. **Phase 4** classifies and tags → enables smart filtering and querying
+3. **Phase 2** is the cognitive core → generates Bloom-tagged propositions at multiple cognitive levels
+4. **★ Bloom's Taxonomy** flows through the entire pipeline as the organizing principle
+5. **LLM Tutor** queries the database by Bloom level + unit + domain for adaptive instruction
+6. **Learner progression** is guided by Bloom hierarchy combined with outline position
+
 ## Temporal Analysis
 
 Phase 5 includes sophisticated temporal tracking:
