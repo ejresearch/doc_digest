@@ -274,7 +274,7 @@ def extract_pedagogical_mapping(text: str) -> Dict[str, Any]:
             user_prompt=prompts["user_prompt"],
             temperature=PHASE_5_TEMPERATURE,
             json_schema=PedagogicalMapping.model_json_schema(),
-            max_tokens=16000  # Higher limit for comprehensive pedagogical extraction
+            max_tokens=6000  # Focused on 4 core elements: objectives, activities, assessments, discussion questions
         )
         logger.info("Phase 5 completed successfully")
         return {"pedagogical_mapping": response}

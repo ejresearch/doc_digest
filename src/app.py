@@ -46,7 +46,7 @@ async def stream_progress(job_id: str):
     async def event_generator():
         last_index = 0
         timeout_count = 0
-        max_timeout = 120  # 2 minutes timeout
+        max_timeout = 1200  # 20 minutes timeout (enough for full analysis)
 
         while timeout_count < max_timeout:
             if job_id in progress_tracker:

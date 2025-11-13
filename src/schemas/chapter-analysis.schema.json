@@ -9,12 +9,12 @@
       "type": "object",
       "description": "Backend header metadata about the chapter",
       "properties": {
-        "chapter_id": { "type": "string" },
-        "file_name": { "type": "string" },
-        "author_or_editor": { "type": "string" },
-        "version": { "type": "string" },
-        "created_at": { "type": "string", "format": "date-time" },
-        "source_text": { "type": "string" }
+        "chapter_id": { "type": ["string", "null"] },
+        "file_name": { "type": ["string", "null"] },
+        "author_or_editor": { "type": ["string", "null"] },
+        "version": { "type": ["string", "null"] },
+        "created_at": { "type": ["string", "null"], "format": "date-time" },
+        "source_text": { "type": ["string", "null"] }
       }
     },
     "comprehension_pass": {
@@ -27,9 +27,9 @@
             "type": "object",
             "properties": {
               "entity": { "type": "string" },
-              "role_or_function": { "type": "string" },
-              "significance_in_chapter": { "type": "string" },
-              "evidence_pointer": { "type": "string" }
+              "role_or_function": { "type": ["string", "null"] },
+              "significance_in_chapter": { "type": ["string", "null"] },
+              "evidence_pointer": { "type": ["string", "null"] }
             },
             "required": ["entity"]
           }
@@ -40,9 +40,9 @@
             "type": "object",
             "properties": {
               "concept_or_topic": { "type": "string" },
-              "definition_or_description": { "type": "string" },
-              "importance": { "type": "string" },
-              "evidence_pointer": { "type": "string" }
+              "definition_or_description": { "type": ["string", "null"] },
+              "importance": { "type": ["string", "null"] },
+              "evidence_pointer": { "type": ["string", "null"] }
             },
             "required": ["concept_or_topic"]
           }
@@ -50,25 +50,25 @@
         "when": {
           "type": "object",
           "properties": {
-            "historical_or_cultural_context": { "type": "string" },
-            "chronological_sequence_within_course": { "type": "string" },
-            "moment_of_presentation_to_reader": { "type": "string" }
+            "historical_or_cultural_context": { "type": ["string", "null"] },
+            "chronological_sequence_within_course": { "type": ["string", "null"] },
+            "moment_of_presentation_to_reader": { "type": ["string", "null"] }
           }
         },
         "why": {
           "type": "object",
           "properties": {
-            "intellectual_value": { "type": "string" },
-            "knowledge_based_value": { "type": "string" },
-            "moral_or_philosophical_significance": { "type": "string" }
+            "intellectual_value": { "type": ["string", "null"] },
+            "knowledge_based_value": { "type": ["string", "null"] },
+            "moral_or_philosophical_significance": { "type": ["string", "null"] }
           }
         },
         "how": {
           "type": "object",
           "properties": {
-            "presentation_style": { "type": "string" },
-            "rhetorical_approach": { "type": "string" },
-            "recommended_student_strategy": { "type": "string" }
+            "presentation_style": { "type": ["string", "null"] },
+            "rhetorical_approach": { "type": ["string", "null"] },
+            "recommended_student_strategy": { "type": ["string", "null"] }
           }
         }
       },
@@ -89,11 +89,11 @@
             "type": "object",
             "properties": {
               "section_title": { "type": "string" },
-              "section_summary": { "type": "string" },
-              "pedagogical_purpose": { "type": "string" },
+              "section_summary": { "type": ["string", "null"] },
+              "pedagogical_purpose": { "type": ["string", "null"] },
               "rhetorical_mode": {
-                "type": "string",
-                "enum": ["expository", "narrative", "analytical", "reflective", "procedural"]
+                "type": ["string", "null"],
+                "enum": ["expository", "narrative", "analytical", "reflective", "procedural", null]
               },
               "subtopics": {
                 "type": "array",
@@ -113,15 +113,15 @@
                       "type": "array",
                       "items": { "type": "string" }
                     },
-                    "notes_on_instructional_sequence": { "type": "string" },
+                    "notes_on_instructional_sequence": { "type": ["string", "null"] },
                     "sub_subtopics": {
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
                           "title": { "type": "string" },
-                          "details": { "type": "string" },
-                          "visual_or_media_support": { "type": "string" }
+                          "details": { "type": ["string", "null"] },
+                          "visual_or_media_support": { "type": ["string", "null"] }
                         },
                         "required": ["title"]
                       }
@@ -141,7 +141,7 @@
       "type": "object",
       "description": "Extracted propositions with truth-type classification",
       "properties": {
-        "definition": { "type": "string" },
+        "definition": { "type": ["string", "null"] },
         "guiding_prompts": {
           "type": "array",
           "items": { "type": "string" }
@@ -151,20 +151,20 @@
           "items": {
             "type": "object",
             "properties": {
-              "id": { "type": "string" },
+              "id": { "type": ["string", "null"] },
               "truth_type": {
-                "type": "string",
-                "enum": ["descriptive", "analytical", "normative"]
+                "type": ["string", "null"],
+                "enum": ["descriptive", "analytical", "normative", null]
               },
               "statement": { "type": "string" },
-              "evidence_from_text": { "type": "string" },
-              "implication_for_learning": { "type": "string" },
+              "evidence_from_text": { "type": ["string", "null"] },
+              "implication_for_learning": { "type": ["string", "null"] },
               "connections_to_other_chapters": {
                 "type": "array",
                 "items": { "type": "string" }
               },
-              "potential_student_reflection_question": { "type": "string" },
-              "evidence_pointer": { "type": "string" }
+              "potential_student_reflection_question": { "type": ["string", "null"] },
+              "evidence_pointer": { "type": ["string", "null"] }
             },
             "required": ["statement"]
           }
@@ -176,15 +176,15 @@
       "type": "object",
       "description": "Derived metadata for curriculum placement and connections",
       "properties": {
-        "subject_domain": { "type": "string" },
-        "curriculum_unit": { "type": "string" },
-        "disciplinary_lens": { "type": "string" },
+        "subject_domain": { "type": ["string", "null"] },
+        "curriculum_unit": { "type": ["string", "null"] },
+        "disciplinary_lens": { "type": ["string", "null"] },
         "related_chapters": {
           "type": "array",
           "items": { "type": "string" }
         },
-        "grade_level_or_audience": { "type": "string" },
-        "spiral_position": { "type": "string" }
+        "grade_level_or_audience": { "type": ["string", "null"] },
+        "spiral_position": { "type": ["string", "null"] }
       }
     },
     "critical_reflection": {
@@ -206,9 +206,9 @@
           "items": {
             "type": "object",
             "properties": {
-              "activity_type": { "type": "string", "description": "Type of activity (e.g., 'reflection', 'observation', 'experiment', 'discussion')" },
-              "description": { "type": "string", "description": "What the activity asks students to do" },
-              "location": { "type": "string", "description": "Where in the chapter this appears" }
+              "activity_type": { "type": ["string", "null"], "description": "Type of activity (e.g., 'reflection', 'observation', 'experiment', 'discussion')" },
+              "description": { "type": ["string", "null"], "description": "What the activity asks students to do" },
+              "location": { "type": ["string", "null"], "description": "Where in the chapter this appears" }
             }
           }
         },
@@ -218,14 +218,14 @@
           "items": {
             "type": "object",
             "properties": {
-              "question": { "type": "string" },
-              "question_type": { "type": "string", "description": "Type of question (e.g., 'multiple choice', 'true/false', 'short answer')" },
-              "location": { "type": "string" }
+              "question": { "type": ["string", "null"] },
+              "question_type": { "type": ["string", "null"], "description": "Type of question (e.g., 'multiple choice', 'true/false', 'short answer')" },
+              "location": { "type": ["string", "null"] }
             }
           }
         },
         "chapter_summary": {
-          "type": "string",
+          "type": ["string", "null"],
           "description": "Summary or key takeaways provided at chapter end"
         },
         "review_sections": {
@@ -234,8 +234,8 @@
           "items": {
             "type": "object",
             "properties": {
-              "content": { "type": "string", "description": "The review statement or summary" },
-              "location": { "type": "string" }
+              "content": { "type": ["string", "null"], "description": "The review statement or summary" },
+              "location": { "type": ["string", "null"] }
             }
           }
         },
@@ -245,14 +245,14 @@
           "items": {
             "type": "object",
             "properties": {
-              "reference": { "type": "string", "description": "Figure number or description (e.g., 'Figure 1.3', 'Peter-Paul goblet illusion')" },
-              "description": { "type": "string", "description": "What the visual depicts" },
-              "pedagogical_purpose": { "type": "string", "description": "Why this visual is included" }
+              "reference": { "type": ["string", "null"], "description": "Figure number or description (e.g., 'Figure 1.3', 'Peter-Paul goblet illusion')" },
+              "description": { "type": ["string", "null"], "description": "What the visual depicts" },
+              "pedagogical_purpose": { "type": ["string", "null"], "description": "Why this visual is included" }
             }
           }
         },
         "temporal_analysis": {
-          "type": "object",
+          "type": ["object", "null"],
           "description": "Analysis of the temporal range of examples and content currency",
           "properties": {
             "historical_examples": {
@@ -261,9 +261,9 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "example": { "type": "string" },
-                  "time_period": { "type": "string" },
-                  "still_relevant": { "type": "boolean", "description": "Is this example still pedagogically valuable?" }
+                  "example": { "type": ["string", "null"] },
+                  "time_period": { "type": ["string", "null"] },
+                  "still_relevant": { "type": ["boolean", "null"], "description": "Is this example still pedagogically valuable?" }
                 }
               }
             },
@@ -273,13 +273,13 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "example": { "type": "string" },
-                  "current_as_of": { "type": "string", "description": "Year or date this example is current" },
-                  "update_priority": { "type": "string", "enum": ["low", "medium", "high"], "description": "How urgently this may need updating" }
+                  "example": { "type": ["string", "null"] },
+                  "current_as_of": { "type": ["string", "null"], "description": "Year or date this example is current" },
+                  "update_priority": { "type": ["string", "null"], "enum": ["low", "medium", "high"], "description": "How urgently this may need updating" }
                 }
               }
             },
-            "temporal_range": { "type": "string", "description": "Overall time span covered by examples (e.g., '1920s-2025')" }
+            "temporal_range": { "type": ["string", "null"], "description": "Overall time span covered by examples (e.g., '1920s-2025')" }
           }
         },
         "potential_discussion_questions": {

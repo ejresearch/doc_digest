@@ -106,7 +106,12 @@ window.loadChapter = async function(filename) {
 };
 
 // File upload handling
-// Note: Click handling is managed by the label wrapper in HTML
+// Click handler to trigger file input
+dropZone.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    fileInput.click();
+});
 
 dropZone.addEventListener('dragover', (e) => {
     e.preventDefault();
@@ -205,7 +210,35 @@ uploadForm.addEventListener('submit', async (e) => {
 
                 if (update.status === 'timeout') {
                     eventSource.close();
-                    throw new Error('Progress stream timed out');
+                    console.log('SSE stream timed out, checking if analysis completed...');
+
+                    // Manually check for completion since timeout doesn't trigger onerror
+                    setTimeout(async () => {
+                        try {
+                            const listResponse = await fetch('/chapters/list');
+                            const listData = await listResponse.json();
+
+                            if (listData.chapters && listData.chapters.length > 0) {
+                                const latestChapter = listData.chapters[listData.chapters.length - 1];
+                                const createdTime = new Date(latestChapter.created_at);
+                                const now = new Date();
+                                const diffMinutes = (now - createdTime) / 1000 / 60;
+
+                                if (diffMinutes < 5) {
+                                    console.log('Analysis completed! Loading results...');
+                                    updateProgress('completed', 'Analysis complete!', 100);
+                                    await loadChapter(latestChapter.filename);
+                                    return;
+                                }
+                            }
+
+                            showErrorState('Stream timed out. Please refresh to check if analysis completed.');
+                        } catch (checkError) {
+                            console.error('Error checking for completion:', checkError);
+                            showErrorState('Stream timed out. Please refresh the page.');
+                        }
+                    }, 1000);
+                    return;
                 }
 
                 // Update UI with real progress
@@ -244,7 +277,9 @@ uploadForm.addEventListener('submit', async (e) => {
                 // Check if error
                 if (update.status === 'error') {
                     eventSource.close();
-                    throw new Error(update.message || 'Analysis failed');
+                    // Show persistent error message
+                    showErrorState(update.message || 'Analysis failed');
+                    return;
                 }
 
             } catch (parseError) {
@@ -252,13 +287,43 @@ uploadForm.addEventListener('submit', async (e) => {
             }
         };
 
-        eventSource.onerror = (error) => {
+        eventSource.onerror = async (error) => {
             console.error('SSE error:', error);
             eventSource.close();
 
-            // Don't immediately fail - the analysis might still be running
-            // Just log the error and keep showing the last known state
-            console.warn('Lost connection to progress stream, but analysis may still be running');
+            // Check if analysis actually completed by fetching the chapter list
+            console.log('Lost connection to progress stream, checking if analysis completed...');
+
+            try {
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+                const listResponse = await fetch('/chapters/list');
+                const listData = await listResponse.json();
+
+                // Find the most recent chapter (should be our new one if completed)
+                if (listData.chapters && listData.chapters.length > 0) {
+                    const latestChapter = listData.chapters[listData.chapters.length - 1];
+
+                    // Check if it was created in the last 5 minutes
+                    const createdTime = new Date(latestChapter.created_at);
+                    const now = new Date();
+                    const diffMinutes = (now - createdTime) / 1000 / 60;
+
+                    if (diffMinutes < 5) {
+                        // Analysis completed! Load the results
+                        console.log('Analysis completed! Loading results...');
+                        updateProgress('completed', 'Analysis complete!', 100);
+                        await loadChapter(latestChapter.filename);
+                        return;
+                    }
+                }
+
+                // If we get here, analysis might still be running or failed
+                console.warn('Could not confirm completion. Analysis may still be running or may have failed.');
+                showErrorState('Connection lost. Please refresh the page to check if analysis completed.');
+            } catch (checkError) {
+                console.error('Error checking for completion:', checkError);
+                showErrorState('Connection lost and unable to verify completion. Please refresh the page.');
+            }
         };
 
     } catch (error) {
@@ -268,12 +333,56 @@ uploadForm.addEventListener('submit', async (e) => {
             eventSource.close();
         }
 
-        updateProgress('error', `Error: ${error.message}`, 0);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        uploadForm.classList.remove('hidden');
-        processingStatus.classList.add('hidden');
+        // Show persistent error state instead of auto-hiding
+        showErrorState(error.message || 'An unexpected error occurred');
     }
 });
+
+// Show persistent error state
+function showErrorState(errorMessage) {
+    const progressPhase = document.getElementById('progressPhase');
+    const progressMessage = document.getElementById('progressMessage');
+    const progressBar = document.getElementById('progressBar');
+    const progressPercent = document.getElementById('progressPercent');
+    const progressETA = document.getElementById('progressETA');
+
+    // Update UI to show error
+    if (progressPhase) {
+        progressPhase.textContent = 'Error';
+        progressPhase.className = 'text-xl font-bold text-red-600 dark:text-red-400';
+    }
+    if (progressMessage) {
+        progressMessage.textContent = errorMessage;
+        progressMessage.className = 'text-gray-700 dark:text-gray-300 mt-2 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg';
+    }
+    if (progressBar) {
+        progressBar.style.width = '100%';
+        progressBar.className = 'h-full bg-red-500 rounded-full transition-all duration-500';
+    }
+    if (progressPercent) {
+        progressPercent.textContent = 'Failed';
+    }
+    if (progressETA) {
+        progressETA.textContent = '';
+    }
+
+    // Add retry button
+    const processingContent = document.querySelector('#processingStatus > div');
+    if (processingContent && !document.getElementById('retryButton')) {
+        const retryButton = document.createElement('button');
+        retryButton.id = 'retryButton';
+        retryButton.textContent = 'Try Again';
+        retryButton.className = 'mt-6 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-lg transition-colors';
+        retryButton.onclick = () => {
+            document.getElementById('retryButton')?.remove();
+            uploadForm.classList.remove('hidden');
+            processingStatus.classList.add('hidden');
+            uploadForm.reset();
+            fileName.classList.add('hidden');
+        };
+        processingContent.appendChild(retryButton);
+    }
+}
 
 // Update progress display
 function updateProgress(phase, message, percent) {
@@ -319,16 +428,21 @@ function updateProgress(phase, message, percent) {
     for (let i = 1; i <= 5; i++) {
         const indicator = document.getElementById(`phase-${i}-indicator`);
         if (indicator) {
-            const phaseNum = phase.match(/phase-(\d)/)?.[1];
-            if (phaseNum && parseInt(phaseNum) === i) {
-                // Current phase
-                indicator.className = 'flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-blue-600 text-white animate-pulse';
-            } else if (phaseNum && parseInt(phaseNum) > i) {
-                // Completed phase
-                indicator.className = 'flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-green-600 text-white';
+            if (phase === 'error') {
+                // Error state - show red for all phases
+                indicator.className = 'flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-red-500 text-white';
             } else {
-                // Pending phase
-                indicator.className = 'flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400';
+                const phaseNum = phase.match(/phase-(\d)/)?.[1];
+                if (phaseNum && parseInt(phaseNum) === i) {
+                    // Current phase
+                    indicator.className = 'flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-blue-600 text-white animate-pulse';
+                } else if (phaseNum && parseInt(phaseNum) > i) {
+                    // Completed phase
+                    indicator.className = 'flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-green-600 text-white';
+                } else {
+                    // Pending phase
+                    indicator.className = 'flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400';
+                }
             }
         }
     }
