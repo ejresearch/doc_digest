@@ -106,6 +106,18 @@ def digest_chapter_graff(
         try:
             phase2 = run_phase_2(text, chapter_id, phase1)
 
+            # FIX: Correct chapter_id in all propositions and takeaways
+            # (LLM sometimes uses example chapter_id like "ch01" instead of actual chapter_id)
+            for prop in phase2.propositions:
+                if prop.chapter_id != chapter_id:
+                    logger.warning(f"Correcting proposition {prop.proposition_id} chapter_id from '{prop.chapter_id}' to '{chapter_id}'")
+                    prop.chapter_id = chapter_id
+
+            for takeaway in phase2.key_takeaways:
+                if takeaway.chapter_id != chapter_id:
+                    logger.warning(f"Correcting takeaway {takeaway.takeaway_id} chapter_id from '{takeaway.chapter_id}' to '{chapter_id}'")
+                    takeaway.chapter_id = chapter_id
+
             # Calculate Bloom distribution for progress message
             bloom_dist = {}
             for prop in phase2.propositions:

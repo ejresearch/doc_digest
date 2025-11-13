@@ -75,7 +75,25 @@ def save_chapter_analysis(chapter: ChapterAnalysis) -> bool:
     try:
         cursor = conn.cursor()
 
-        # Validate proposition_ids in takeaways before saving
+        # Validate unit_ids exist in Phase 1 sections
+        valid_unit_ids = {section.unit_id for section in chapter.phase1.sections}
+        logger.info(f"Valid unit_ids from Phase 1: {sorted(valid_unit_ids)}")
+
+        # Check propositions
+        for prop in chapter.phase2.propositions:
+            if prop.unit_id not in valid_unit_ids:
+                logger.error(f"Proposition {prop.proposition_id} references invalid unit_id: {prop.unit_id}")
+                logger.error(f"Valid unit_ids: {sorted(valid_unit_ids)}")
+                raise ValueError(f"Proposition references non-existent unit_id: {prop.unit_id}")
+
+        # Check takeaways
+        for takeaway in chapter.phase2.key_takeaways:
+            if takeaway.unit_id and takeaway.unit_id not in valid_unit_ids:
+                logger.error(f"Takeaway {takeaway.takeaway_id} references invalid unit_id: {takeaway.unit_id}")
+                logger.error(f"Valid unit_ids: {sorted(valid_unit_ids)}")
+                raise ValueError(f"Takeaway references non-existent unit_id: {takeaway.unit_id}")
+
+        # Validate proposition_ids in takeaways
         valid_prop_ids = {prop.proposition_id for prop in chapter.phase2.propositions}
         for takeaway in chapter.phase2.key_takeaways:
             invalid_refs = [pid for pid in takeaway.proposition_ids if pid not in valid_prop_ids]
@@ -134,7 +152,12 @@ def save_chapter_analysis(chapter: ChapterAnalysis) -> bool:
             """, (chapter.chapter_id, keyword))
 
         # Insert propositions
-        for prop in chapter.phase2.propositions:
+        logger.info(f"Chapter ID being used: {chapter.chapter_id}")
+        for i, prop in enumerate(chapter.phase2.propositions):
+            if i == 0:
+                logger.info(f"First proposition chapter_id: {prop.chapter_id}")
+            if prop.chapter_id != chapter.chapter_id:
+                logger.error(f"MISMATCH: Proposition {prop.proposition_id} has chapter_id={prop.chapter_id}, but chapter.chapter_id={chapter.chapter_id}")
             cursor.execute("""
                 INSERT INTO propositions (id, chapter_id, unit_id, proposition_text, bloom_level, bloom_verb, evidence_location, source_type)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -190,6 +213,9 @@ def save_chapter_analysis(chapter: ChapterAnalysis) -> bool:
     except Exception as e:
         conn.rollback()
         logger.error(f"Failed to save chapter {chapter.chapter_id}: {e}")
+        logger.error(f"Error type: {type(e).__name__}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return False
     finally:
         conn.close()

@@ -44,39 +44,116 @@ PART A: PROPOSITION EXTRACTION
 
 ## What is a Proposition?
 
-A proposition is an **atomic fact** - the smallest unit of instructional meaning.
+A proposition is an **atomic fact** - ONE simple statement that can be true or false.
 
-**Characteristics:**
-✓ True/false statement
-✓ Grounded in specific text location
-✓ Cannot contain multiple ideas
-✓ Testable as a standalone fact
-✓ Smallest meaningful unit
+**The Atomic Test:**
+✓ Can be expressed in one short sentence (subject-verb-object)
+✓ Contains ONLY ONE fact (no "and", no multiple clauses)
+✓ Can be written as a simple bullet point
+✓ A middle-school student could understand it
+✓ You could make a flashcard from it
 
-**GOOD Propositions:**
-✓ "The U.S. Bureau of Labor Statistics reports that Americans spend approximately 5 hours per day on leisure activities."
-✓ "Vertical integration refers to studio ownership of production, distribution, and exhibition."
-✓ "The Paramount antitrust decision was issued in 1948."
+**CRITICALLY IMPORTANT: Break down complex sentences**
+If a sentence contains multiple facts, extract EACH fact as a separate proposition.
 
-**BAD Propositions:**
+## Extraction Methodology: COMPREHENSIVE, NOT SELECTIVE
+
+**⚠️ THIS IS NOT A "KEY FACTS" EXTRACTION TASK**
+Do NOT extract only the "most important" or "key" facts. Extract EVERY fact.
+
+**Step-by-step process:**
+1. **Read each paragraph carefully**
+2. **For each sentence:** Ask "what facts does this contain?"
+3. **Break down complex sentences** into atomic facts
+4. **Extract ALL facts:** definitions, examples, names, dates, descriptions, comparisons, causes, effects, relationships
+5. **Don't skip:** Even "obvious" or "minor" facts should be extracted
+6. **Include background information:** Context, prerequisites, related concepts
+
+**What to extract:**
+✓ Definitions of terms and concepts
+✓ Historical facts (who, what, when, where)
+✓ Descriptions of processes and methods
+✓ Examples and case studies
+✓ Comparisons and contrasts
+✓ Causes and effects
+✓ Relationships between concepts
+✓ Characteristics and properties
+✓ Background and context
+✓ Prerequisites and dependencies
+✓ Applications and uses
+
+**QUANTITATIVE REQUIREMENT:**
+- **Minimum:** 1 proposition per 100-150 words
+- **Standard 5,000-word chapter:** 30-50+ propositions
+- **Your chapter has 10,000 words:** 64-100+ propositions required
+- **If you extract fewer than this, you are failing the task**
+
+**Example - Fairbanks biography:**
+
+❌ BAD (combines multiple facts):
+"Douglas Fairbanks rose from a difficult childhood in Denver to become a Broadway star and later co-founded United Artists in 1919."
+
+✅ GOOD (atomic facts):
+- "Douglas Fairbanks was born in Denver in 1883."
+- "Douglas Fairbanks's father abandoned the family."
+- "Douglas Fairbanks became a Broadway star by 1906."
+- "Douglas Fairbanks moved to Hollywood in 1914."
+- "Douglas Fairbanks co-founded United Artists in 1919."
+
+**More Examples:**
+
+✅ GOOD - Remember level:
+- "The Paramount decision was issued in 1948."
+- "The Big Five studios included Paramount, MGM, Warner Bros., 20th Century Fox, and RKO."
+- "Block booking required theaters to rent films in groups."
+
+✅ GOOD - Understand level:
+- "Vertical integration means owning production, distribution, and exhibition."
+- "Block booking transferred financial risk from studios to theater owners."
+- "The star system created barriers to entry for independent producers."
+
+❌ BAD Propositions:
 ✗ "The studio system was important and controlled everything." (vague, combines ideas)
-✗ "Studios existed." (too trivial, not meaningful)
+✗ "Studios existed." (too trivial)
 ✗ "This chapter discusses vertical integration." (meta, not content)
+✗ "Vertical integration allowed studios to control the entire supply chain from production through exhibition, which gave them unprecedented market power." (TOO COMPLEX - contains 3+ facts, must break down)
 
 ---
 
 ## Extraction Philosophy
 
-**COMPREHENSIVE, NOT SELECTIVE**
-- Extract EVERY atomic fact, not just highlights
-- No artificial limits (100, 200, 500+ propositions is fine)
-- Better to have too many than miss important facts
-- Think: "What would a student need to know to fully understand this chapter?"
+**⚠️ COMPREHENSIVE EXTRACTION IS MANDATORY ⚠️**
+You MUST extract EVERY atomic fact from the text, not just key points or highlights.
+
+**Requirements:**
+- Extract EVERY fact from EVERY paragraph
+- No skipping sentences because they seem "obvious" or "less important"
+- No artificial limits - 100+ propositions is expected for long chapters
+- If a sentence contains facts, extract them ALL
+- Think: "A student with no prior knowledge needs ALL these facts to understand this chapter"
+
+**MANDATORY QUANTITATIVE TARGETS:**
+- **MINIMUM:** 1 proposition per 100-150 words
+- **5,000-word chapter:** 30-50 propositions MINIMUM
+- **10,000-word chapter:** 64-100 propositions MINIMUM
+- **15,000+ word chapter:** 100-150+ propositions MINIMUM
+
+**⚠️ WARNING:**
+- If you extract fewer than 30 propositions for a 5,000+ word chapter, you are FAILING THE TASK
+- If you extract fewer than 60 propositions for a 10,000+ word chapter, you are FAILING THE TASK
+- Being "selective" or extracting only "key facts" is INCORRECT
 
 **MULTI-LEVEL EXTRACTION**
 - Extract facts at all four allowed Bloom levels
 - Don't just focus on "remember" level facts
 - Include explanations (understand), applications (apply), and analyses (analyze)
+- Target distribution: 20-30% remember, 30-40% understand, 20-30% apply, 10-20% analyze
+
+**BREAK DOWN COMPLEX SENTENCES**
+- Read each paragraph sentence by sentence
+- If a sentence contains multiple facts, extract EACH fact separately
+- Example: "Fairbanks was born in Denver in 1883 and became a Broadway star by 1906"
+  → Extract 2 propositions: birth fact + career fact
 
 **EVIDENCE-BASED**
 - Every proposition must link to specific text location
@@ -109,16 +186,18 @@ A proposition is an **atomic fact** - the smallest unit of instructional meaning
 **Cognitive acts:** Explain, describe, summarize, interpret, clarify
 
 **What to extract:**
-- Explanations of how things work
-- Descriptions of processes
-- Interpretations of meaning
-- Clarifications of relationships
-- Summaries of complex ideas
+- Explanations of how things work (one mechanism per proposition)
+- Descriptions of processes (one step per proposition)
+- Interpretations of meaning (one interpretation per proposition)
+- Clarifications of relationships (one relationship per proposition)
+- Cause-effect statements (one causal link per proposition)
 
-**Examples:**
-✓ "Vertical integration allowed studios to control the entire film supply chain from production through exhibition."
-✓ "Block booking gave studios guaranteed revenue by forcing theaters to accept less popular films alongside hits."
-✓ "The star system functioned as a form of brand differentiation that helped studios market their films."
+**Examples (atomic, simple):**
+✓ "Vertical integration means owning production, distribution, and exhibition."
+✓ "Block booking transferred financial risk from studios to exhibitors."
+✓ "Theater ownership guaranteed exhibition outlets for studio films."
+✓ "The star system functioned as brand differentiation for studios."
+✓ "Long-term contracts prevented actors from working for competitors."
 
 **Bloom verbs for understand:** explain, describe, summarize, interpret, clarify, illustrate, paraphrase
 
@@ -128,14 +207,15 @@ A proposition is an **atomic fact** - the smallest unit of instructional meaning
 **Cognitive acts:** Use, demonstrate, implement, apply concepts to examples
 
 **What to extract:**
-- Concrete examples of concepts in action
-- Applications of theories to specific cases
-- Demonstrations of how principles work in practice
-- Real-world implementations
+- Concrete examples of concepts in action (one example per proposition)
+- Applications of theories to specific cases (one application per proposition)
+- Demonstrations of how principles work in practice (one demonstration per proposition)
 
-**Examples:**
-✓ "Paramount used vertical integration by owning Paramount Pictures (production), Paramount distribution, and a chain of 1,450 theaters (exhibition)."
-✓ "The chapter illustrates block booking with the example of theaters being forced to rent 50 films sight unseen to get access to one major release."
+**Examples (atomic, simple):**
+✓ "Paramount owned 1,450 theaters by 1948."
+✓ "MGM demonstrated vertical integration by controlling production, distribution, and exhibition."
+✓ "Block booking forced theaters to rent films in bundles rather than individually."
+✓ "United Artists applied the independent production model by signing with established stars."
 
 **Bloom verbs for apply:** apply, demonstrate, use, implement, illustrate with, show
 
@@ -145,16 +225,17 @@ A proposition is an **atomic fact** - the smallest unit of instructional meaning
 **Cognitive acts:** Compare, contrast, differentiate, examine relationships, identify causes
 
 **What to extract:**
-- Comparisons between entities or concepts
-- Contrasts highlighting differences
-- Causal relationships (X caused Y)
-- Structural analyses
-- Pattern identifications
+- Comparisons between entities or concepts (one comparison per proposition)
+- Contrasts highlighting differences (one contrast per proposition)
+- Causal relationships - X caused Y (one causal link per proposition)
+- Structural analyses (one relationship per proposition)
 
-**Examples:**
-✓ "Unlike the Little Three studios (Universal, Columbia, United Artists), the Big Five owned theater chains, giving them greater market control."
-✓ "Vertical integration created barriers to entry for independent producers who lacked distribution and exhibition access."
-✓ "The Paramount decision's dissolution of theater ownership eliminated the primary source of studio leverage over the market."
+**Examples (atomic, simple):**
+✓ "The Big Five owned theaters while the Little Three did not."
+✓ "Theater ownership gave the Big Five greater market control than the Little Three."
+✓ "Vertical integration created barriers to entry for independent producers."
+✓ "The Paramount decision eliminated the Big Five's theater ownership advantage."
+✓ "Block booking transferred risk from studios to theater owners."
 
 **Bloom verbs for analyze:** compare, contrast, differentiate, distinguish, examine, analyze, categorize, relate
 
@@ -200,13 +281,26 @@ An action verb matching the bloom_level
 Examples: "define", "explain", "apply", "compare"
 
 ### evidence_location (string, required)
-Where in the text this proposition is found
-Formats:
-- "Section 1.2, paragraph 3"
-- "p.5 ¶2-3"
-- "Introduction, paragraph 1"
+Where in the text this proposition is found - use **paragraph-level precision**
 
-Be specific enough for fact-checking.
+**Format:** `{unit_id}:¶{paragraph_number}`
+
+Examples:
+- "1.1:¶003" - Unit 1.1, paragraph 3
+- "2.4.1:¶015" - Unit 2.4.1, paragraph 15
+- "intro:¶001" - Introduction, first paragraph
+
+**Paragraph numbering:**
+- Number paragraphs sequentially within each section/unit
+- Use zero-padded 3-digit format (¶001, ¶002, ..., ¶015)
+- Restart numbering for each new section
+- Count all text paragraphs (skip headings)
+
+**For facts spanning multiple paragraphs:**
+- Use range: "1.2:¶005-¶007"
+- Or list primary paragraph: "1.2:¶005"
+
+This enables precise source tracking and fact-checking.
 
 ### source_type (string, required)
 How the proposition was extracted:
@@ -231,13 +325,21 @@ AVOID generic tags: ["important", "concept", "fact"]
 **Step 1: Read the full chapter text**
 - Understand the complete content before extracting
 - Note major themes and arguments
+- Mentally divide into sections matching Phase 1 unit_ids
 
 **Step 2: Extract systematically by section**
 - Work through each unit_id from Phase 1
+- **Track paragraph numbers** as you read (¶001, ¶002, ¶003...)
 - For EACH section, extract all facts at all Bloom levels
-- Start with remember/understand, then add apply/analyze
+- Record paragraph location for each fact: `{unit_id}:¶{number}`
 
 **Step 3: Extract at multiple Bloom levels**
+For each paragraph:
+1. Read the paragraph carefully
+2. Extract ALL facts from it (may be multiple propositions per paragraph)
+3. Tag each fact with appropriate Bloom level
+4. Record evidence_location as `{unit_id}:¶{paragraph_number}`
+
 For each topic or concept:
 1. Extract remember level (definitions, facts)
 2. Extract understand level (explanations)
@@ -248,7 +350,8 @@ For each topic or concept:
 - Is it atomic (one fact)?
 - Is it grounded in the text?
 - Is the Bloom level correct?
-- Does it have proper evidence location?
+- Does it have proper paragraph-level evidence location?
+- Format: `{unit_id}:¶{number}` (e.g., "1.2:¶005")
 
 ═══════════════════════════════════════════════════════════════════════
 PART B: KEY TAKEAWAY SYNTHESIS
@@ -256,22 +359,31 @@ PART B: KEY TAKEAWAY SYNTHESIS
 
 ## What is a Key Takeaway?
 
-A key takeaway is a **meaningful learning point** that synthesizes several propositions.
+A key takeaway is a **meaningful learning point** that combines multiple related propositions into a higher-order insight.
+
+**Think:** "What would a student say after reading this section if they understood it deeply?"
 
 **Characteristics:**
-✓ One-sentence conceptual summary
-✓ Derived from multiple propositions
-✓ Represents significance, trend, relationship, or interpretation
-✓ Higher-order cognitive insight
-✓ Usually tied to a section or theme
+✓ One complete sentence (can be longer than propositions)
+✓ Synthesizes 2-5 related propositions
+✓ Reveals significance, patterns, relationships, or implications
+✓ Higher-order cognitive insight (analyze or evaluate)
+✓ Represents what truly matters for learning
+
+**Difference from Propositions:**
+- **Proposition:** "Fairbanks was born in Denver in 1883." (atomic fact)
+- **Takeaway:** "Fairbanks rose from a difficult childhood in Denver to early success in theater and film." (synthesizes multiple facts into a narrative arc)
 
 **GOOD Takeaways:**
-✓ "Vertical integration allowed studios to dominate the film industry by controlling production, distribution, and exhibition, creating insurmountable barriers for independent competitors."
-✓ "The Paramount decision fundamentally restructured the film industry by eliminating the studios' exhibition monopoly, but did not affect their control of production and distribution."
+✓ "Fairbanks rose from a difficult childhood in Denver to early success in theater and film."
+✓ "His athletic, optimistic persona made him a major silent-era star."
+✓ "Vertical integration allowed the Big Five to dominate by controlling production, distribution, and exhibition."
+✓ "The Paramount decision proved only partially effective, as studios retained control over production and distribution even after divesting their theaters."
 
 **BAD Takeaways:**
 ✗ "Studios were important." (too vague, not synthesized)
 ✗ "Paramount Pictures owned 1,450 theaters." (this is a proposition, not a synthesis)
+✗ "This chapter discusses vertical integration." (meta, not content)
 
 ---
 
@@ -344,29 +456,61 @@ Examples: ["industry structure", "market control", "antitrust impact"]
 
 ---
 
-## Synthesis Strategy
+## Synthesis Strategy: Multi-Pass Approach
 
-**Step 1: Group related propositions**
-- Look for propositions that relate to the same theme
-- Identify sets of 2-5 propositions that connect
+**GOAL:** Generate 8-20 key takeaways per chapter (more for longer chapters)
+- Each major section should yield 2-4 takeaways
+- Chapter-level should yield 2-3 overarching takeaways
 
-**Step 2: Identify the synthesis**
-- What pattern or relationship do these propositions reveal?
-- What's the "so what?" - why do these facts matter together?
-- What higher-order insight emerges?
+**READING PASS 1: Section-by-Section Synthesis**
+For EACH section (unit_id):
+1. Review all propositions in that section
+2. Ask: "What's the main point of this section?"
+3. Identify 2-4 key themes or narratives
+4. Write a takeaway for each theme
 
-**Step 3: Write the takeaway sentence**
-- Capture the synthesis in one clear sentence
-- Make it meaningful and insightful
-- Ensure it goes beyond any single proposition
+Example (Fairbanks section):
+- Theme 1: Early life → Takeaway: "Fairbanks rose from a difficult childhood in Denver to early success in theater and film."
+- Theme 2: Silent era success → Takeaway: "His athletic, optimistic persona made him a major silent-era star."
+- Theme 3: Business ventures → Takeaway: "As a business pioneer, he helped reshape Hollywood through United Artists and the Academy."
+- Theme 4: Career decline → Takeaway: "Fairbanks struggled in the sound era and retired before dying young in 1939."
 
-**Step 4: Tag with Bloom level**
-- Analyze: if examining relationships, patterns, structure
-- Evaluate: if making judgments about significance, effectiveness
+**READING PASS 2: Cross-Section Patterns**
+Look across multiple sections for:
+1. **Comparisons:** How do entities/concepts differ?
+   → Takeaway: "The Big Five's theater ownership gave them greater market control than the Little Three."
 
-**Step 5: Link to source propositions**
-- List all proposition IDs that support this takeaway
-- Ensure traceability back to evidence
+2. **Causal chains:** What caused what across the chapter?
+   → Takeaway: "Vertical integration created barriers to entry, which led to industry consolidation."
+
+3. **Evolution/Change:** How did things develop over time?
+   → Takeaway: "The Paramount decision fundamentally altered studio leverage without eliminating their control."
+
+**READING PASS 3: Chapter-Level Insights**
+Step back and ask:
+1. What's the BIG takeaway from this entire chapter?
+2. What are the 2-3 most important things a student should remember?
+3. What larger implications or patterns emerge?
+
+**GENERATION PROCESS:**
+1. **Group propositions** by theme (2-5 propositions per group)
+2. **Identify the synthesis:** What pattern/relationship/significance emerges?
+3. **Write one clear sentence** capturing the insight
+4. **Tag Bloom level:** analyze (patterns/relationships) or evaluate (judgments/effectiveness)
+5. **Link to proposition_ids:** List all supporting propositions
+6. **Add tags:** 2-4 thematic tags
+
+**QUANTITATIVE TARGET:**
+- Short chapter (< 5 sections): 6-12 takeaways
+- Standard chapter (5-10 sections): 10-20 takeaways
+- Long chapter (10+ sections): 15-30 takeaways
+
+**QUALITY CHECK:** Takeaways should be diverse:
+- Some about individuals/entities
+- Some about concepts/mechanisms
+- Some about events/changes
+- Some about comparisons/contrasts
+- Some about causes/effects
 
 ═══════════════════════════════════════════════════════════════════════
 OUTPUT FORMAT
@@ -383,7 +527,7 @@ You must respond with valid JSON matching this exact structure:
       "proposition_text": "Vertical integration refers to studio ownership of production, distribution, and exhibition.",
       "bloom_level": "remember",
       "bloom_verb": "define",
-      "evidence_location": "Section 1.2, paragraph 2",
+      "evidence_location": "1.2:¶002",
       "source_type": "explicit",
       "tags": ["vertical integration", "studio system", "market structure"]
     },
@@ -391,32 +535,32 @@ You must respond with valid JSON matching this exact structure:
       "proposition_id": "ch01_1.2_p002",
       "chapter_id": "ch01",
       "unit_id": "1.2",
-      "proposition_text": "The Big Five studios (Paramount, MGM, Warner Bros., 20th Century Fox, and RKO) all employed vertical integration strategies.",
+      "proposition_text": "The Big Five studios included Paramount, MGM, Warner Bros., 20th Century Fox, and RKO.",
       "bloom_level": "remember",
       "bloom_verb": "list",
-      "evidence_location": "Section 1.2, paragraph 3",
+      "evidence_location": "1.2:¶003",
       "source_type": "explicit",
-      "tags": ["Big Five", "vertical integration", "studios"]
+      "tags": ["Big Five", "studios", "Hollywood"]
     },
     {
       "proposition_id": "ch01_1.2_p003",
       "chapter_id": "ch01",
       "unit_id": "1.2",
-      "proposition_text": "Vertical integration allowed studios to control the entire supply chain from film creation to audience exhibition, eliminating dependency on third parties.",
+      "proposition_text": "Vertical integration eliminated studios' dependency on third parties.",
       "bloom_level": "understand",
       "bloom_verb": "explain",
-      "evidence_location": "Section 1.2, paragraph 4-5",
+      "evidence_location": "1.2:¶004",
       "source_type": "paraphrased",
-      "tags": ["vertical integration", "supply chain", "market control"]
+      "tags": ["vertical integration", "independence", "market control"]
     },
     {
       "proposition_id": "ch01_1.2_p004",
       "chapter_id": "ch01",
       "unit_id": "1.2",
-      "proposition_text": "Paramount Pictures demonstrated vertical integration by owning Paramount production facilities, a nationwide distribution network, and 1,450 theaters.",
+      "proposition_text": "Paramount owned 1,450 theaters by 1948.",
       "bloom_level": "apply",
       "bloom_verb": "demonstrate",
-      "evidence_location": "Section 1.2, paragraph 6",
+      "evidence_location": "1.2:¶006",
       "source_type": "explicit",
       "tags": ["Paramount", "vertical integration", "example"]
     },
@@ -424,12 +568,12 @@ You must respond with valid JSON matching this exact structure:
       "proposition_id": "ch01_1.2_p005",
       "chapter_id": "ch01",
       "unit_id": "1.2",
-      "proposition_text": "Unlike the Little Three studios (Universal, Columbia, United Artists), the Big Five's theater ownership gave them guaranteed exhibition outlets and greater market leverage.",
+      "proposition_text": "The Big Five owned theaters while the Little Three did not.",
       "bloom_level": "analyze",
       "bloom_verb": "contrast",
-      "evidence_location": "Section 1.2, paragraph 8",
+      "evidence_location": "1.2:¶008",
       "source_type": "paraphrased",
-      "tags": ["Big Five", "Little Three", "market power", "comparison"]
+      "tags": ["Big Five", "Little Three", "comparison"]
     }
   ],
   "key_takeaways": [
@@ -494,16 +638,49 @@ QUALITY CHECKLIST
 
 Before submitting your output, verify:
 
+**ATOMIC EXTRACTION:**
+✓ Every proposition is ONE simple fact (subject-verb-object)
+✓ No proposition contains "and" or multiple clauses
+✓ Each proposition could fit on a flashcard
+✓ Complex sentences have been broken down into multiple propositions
+✓ Every proposition has evidence_location
+
+**COMPREHENSIVE EXTRACTION (MANDATORY):**
+✓ Extraction is comprehensive - EVERY fact extracted, not just "key" facts
+✓ Text analyzed sentence by sentence, paragraph by paragraph
+✓ At least 1 proposition per 100-150 words MINIMUM (not a guideline, a requirement)
+✓ If chapter is 5,000 words: 30-50+ propositions REQUIRED
+✓ If chapter is 10,000 words: 64-100+ propositions REQUIRED
+✓ If chapter is 15,000+ words: 100-150+ propositions REQUIRED
+
+**⚠️ SELF-CHECK BEFORE SUBMITTING:**
+❌ If you have fewer than 30 propositions for a 5,000+ word chapter, GO BACK and extract more
+❌ If you have fewer than 60 propositions for a 10,000+ word chapter, GO BACK and extract more
+❌ If you skipped facts because they seemed "obvious" or "less important", GO BACK and extract them
+
+**BLOOM CONSTRAINTS:**
 ✓ All propositions use ONLY: remember, understand, apply, analyze
 ✓ All takeaways use ONLY: analyze, evaluate (or null)
-✓ Every proposition is atomic (one fact)
-✓ Every proposition has evidence_location
+✓ Distribution roughly: 20-30% remember, 30-40% understand, 10-15% apply, 15-25% analyze
+
+**STRUCTURE:**
 ✓ Every proposition has 2-5 meaningful tags
-✓ Extraction is comprehensive (not selective)
-✓ Every takeaway references at least 1 proposition_id
+✓ Every takeaway references at least 2 proposition_ids
 ✓ Takeaways actually synthesize (not just restate)
 ✓ JSON is valid and complete
 ✓ proposition_ids are properly formatted and sequential
+
+**TAKEAWAY QUANTITY:**
+✓ Short chapter (< 5 sections): 6-12 takeaways
+✓ Standard chapter (5-10 sections): 10-20 takeaways
+✓ Long chapter (10+ sections): 15-30 takeaways
+✓ Each major section has 2-4 takeaways
+✓ Takeaways cover diverse themes (people, concepts, events, comparisons, causes)
+
+**SELF-CHECKS:**
+⚠️ If you extracted fewer than 30 propositions for a standard chapter, you are being TOO SELECTIVE with propositions
+⚠️ If you generated fewer than 8 takeaways for a standard chapter, you are being TOO SELECTIVE with synthesis
+⚠️ Use the 3-pass approach: section-level → cross-section patterns → chapter-level insights
 
 ═══════════════════════════════════════════════════════════════════════
 
