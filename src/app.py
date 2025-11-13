@@ -8,7 +8,8 @@ import io
 import json
 import asyncio
 from typing import Dict, List
-from .services.orchestrator import digest_chapter, DigestError, ValidationError, StorageError
+from .services.graff_orchestrator import digest_chapter_graff, DigestError, ValidationError, StorageError, PhaseError
+from .db import list_chapters, load_chapter_analysis, init_database
 from .utils.logging_config import setup_logging, get_logger
 
 # Initialize logging
@@ -76,18 +77,29 @@ async def startup_event():
 async def shutdown_event():
     logger.info("Doc Digester API shutting down")
 
-async def process_chapter_background(job_id: str, text: str, sys_meta: Dict):
-    """Background task to process chapter analysis."""
+async def process_chapter_background(
+    job_id: str,
+    text: str,
+    book_id: str,
+    chapter_title: str,
+    chapter_id: str = None
+):
+    """Background task to process GRAFF chapter analysis."""
     try:
-        # Run the synchronous digest_chapter in a thread pool
+        # Run the synchronous GRAFF pipeline in a thread pool
         result = await asyncio.to_thread(
-            digest_chapter,
+            digest_chapter_graff,
             text,
-            sys_meta,
+            book_id,
+            chapter_title,
+            chapter_id,
             lambda phase, msg: add_progress(job_id, phase, msg)
         )
         add_progress(job_id, "completed", "Analysis complete!", "completed")
-        logger.info(f"Successfully processed chapter: {result.get('chapter_id')}")
+        logger.info(f"Successfully processed chapter: {result.chapter_id}")
+    except PhaseError as e:
+        logger.error(f"Phase error in background task: {e}")
+        add_progress(job_id, "error", f"Phase {e.phase} failed: {str(e)}", "error")
     except ValidationError as e:
         logger.error(f"Validation error in background task: {e}")
         add_progress(job_id, "error", f"Validation failed: {str(e)}", "error")
@@ -199,28 +211,31 @@ async def chapters_digest(
                 detail="Text content is too short for analysis (minimum 100 characters)"
             )
 
-        # Build system metadata
-        from datetime import datetime, timezone
-        sys_meta = {
-            "chapter_id": chapter_id,
-            "file_name": file_name or file.filename,
-            "author_or_editor": author_or_editor or "Unknown",
-            "version": version,
-            "created_at": created_at or datetime.now(timezone.utc).isoformat(),
-            "source_text": source_text or ""
-        }
+        # Extract book_id and chapter_title from metadata
+        book_id = author_or_editor or "unknown_book"  # Use author as book_id for now
+        chapter_title = file_name or file.filename or "Untitled Chapter"
 
-        logger.info(f"Processing chapter with {len(text)} characters")
+        # Clean chapter title (remove file extension)
+        if chapter_title.endswith(('.txt', '.docx', '.pdf')):
+            chapter_title = '.'.join(chapter_title.split('.')[:-1])
+
+        logger.info(f"Processing chapter: '{chapter_title}' ({len(text)} characters)")
 
         # Generate job ID
         import uuid
         job_id = str(uuid.uuid4())
 
         # Initialize progress tracking
-        add_progress(job_id, "initialization", "Starting analysis...", "in_progress")
+        add_progress(job_id, "initialization", "Starting GRAFF analysis...", "in_progress")
 
         # Start background processing
-        asyncio.create_task(process_chapter_background(job_id, text, sys_meta))
+        asyncio.create_task(process_chapter_background(
+            job_id=job_id,
+            text=text,
+            book_id=book_id,
+            chapter_title=chapter_title,
+            chapter_id=chapter_id
+        ))
 
         # Return job_id immediately for progress tracking
         return {
@@ -254,70 +269,122 @@ async def health_check():
     return {"status": "healthy", "service": "doc-digester"}
 
 @app.get("/chapters/list")
-async def list_chapters():
-    """List all available chapter analyses."""
-    from pathlib import Path
-    import json
-
-    data_dir = Path(__file__).parent.parent / "data" / "chapters"
-    chapters = []
-
-    if data_dir.exists():
-        for file in data_dir.glob("*.json"):
-            try:
-                with open(file, 'r') as f:
-                    data = json.load(f)
-                    meta = data.get('system_metadata', {})
-                    chapters.append({
-                        'filename': file.name,
-                        'chapter_id': meta.get('chapter_id'),
-                        'version': meta.get('version'),
-                        'source_text': meta.get('source_text'),
-                        'created_at': meta.get('created_at')
-                    })
-            except Exception:
-                continue
-
-    return {"chapters": chapters}
-
-@app.get("/chapters/{filename}")
-async def get_chapter(filename: str):
-    """Get a specific chapter analysis by filename."""
-    from pathlib import Path
-    import json
-
-    data_dir = Path(__file__).parent.parent / "data" / "chapters"
-    file_path = data_dir / filename
-
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="Chapter not found")
-
+async def get_chapters_list():
+    """List all available chapter analyses from the database."""
     try:
-        with open(file_path, 'r') as f:
-            return json.load(f)
+        from .db import list_chapters as db_list_chapters
+        chapters_list = db_list_chapters()
+        return {"chapters": chapters_list}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load chapter: {str(e)}")
+        logger.error(f"Failed to list chapters: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list chapters: {str(e)}"
+        )
 
-@app.delete("/chapters/{filename}")
-async def delete_chapter(filename: str):
-    """Delete a specific chapter analysis by filename."""
-    from pathlib import Path
-    import os
 
-    data_dir = Path(__file__).parent.parent / "data" / "chapters"
-    file_path = data_dir / filename
-
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="Chapter not found")
-
-    # Security check: ensure filename doesn't contain path traversal attempts
-    if '..' in filename or '/' in filename or '\\' in filename:
-        raise HTTPException(status_code=400, detail="Invalid filename")
-
+@app.get("/chapters/{chapter_id}")
+async def get_chapter(chapter_id: str):
+    """Get a specific chapter analysis by chapter_id."""
     try:
-        os.remove(file_path)
-        logger.info(f"Deleted chapter analysis: {filename}")
-        return {"message": "Chapter deleted successfully", "filename": filename}
+        from .db import load_chapter_analysis
+        chapter = load_chapter_analysis(chapter_id)
+
+        if not chapter:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Chapter {chapter_id} not found"
+            )
+
+        # Return as dict for JSON serialization
+        return chapter.model_dump()
+
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Failed to delete chapter {filename}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to delete chapter: {str(e)}")
+        logger.error(f"Failed to load chapter {chapter_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load chapter: {str(e)}"
+        )
+
+
+@app.delete("/chapters/{chapter_id}")
+async def delete_chapter_endpoint(chapter_id: str):
+    """Delete a specific chapter analysis by chapter_id."""
+    try:
+        from .db import delete_chapter
+        success = delete_chapter(chapter_id)
+
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Chapter {chapter_id} not found"
+            )
+
+        logger.info(f"Deleted chapter: {chapter_id}")
+        return {"message": "Chapter deleted successfully", "chapter_id": chapter_id}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete chapter {chapter_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete chapter: {str(e)}"
+        )
+
+
+@app.get("/chapters/{chapter_id}/propositions")
+async def get_chapter_propositions(
+    chapter_id: str,
+    bloom_level: str = None
+):
+    """
+    Get propositions for a chapter, optionally filtered by Bloom level.
+
+    Query params:
+    - bloom_level: Filter by Bloom level (remember, understand, apply, analyze)
+    """
+    try:
+        from .db import load_chapter_analysis, get_propositions_by_bloom
+
+        # If bloom_level filter specified, use specialized query
+        if bloom_level:
+            if bloom_level not in ['remember', 'understand', 'apply', 'analyze']:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid Bloom level: {bloom_level}"
+                )
+
+            propositions = get_propositions_by_bloom(chapter_id, bloom_level)
+            return {
+                "chapter_id": chapter_id,
+                "bloom_level": bloom_level,
+                "count": len(propositions),
+                "propositions": [p.model_dump() for p in propositions]
+            }
+
+        # Otherwise, load full chapter and return all propositions
+        chapter = load_chapter_analysis(chapter_id)
+        if not chapter:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Chapter {chapter_id} not found"
+            )
+
+        return {
+            "chapter_id": chapter_id,
+            "count": len(chapter.phase2.propositions),
+            "bloom_distribution": chapter.get_bloom_distribution(),
+            "propositions": [p.model_dump() for p in chapter.phase2.propositions]
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get propositions for {chapter_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get propositions: {str(e)}"
+        )

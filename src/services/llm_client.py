@@ -1,304 +1,228 @@
+"""
+GRAFF LLM Client - 2-Phase Chapter Analysis Pipeline
+
+This module orchestrates the GRAFF pipeline:
+- Phase 1: Chapter Comprehension (structure, entities, keywords, summary)
+- Phase 2: Proposition Extraction + Key Takeaway Synthesis
+"""
+
 from typing import Dict, Optional, Any
+import json
+from pathlib import Path
 from ..utils.logging_config import get_logger
 from .openai_client import call_openai_structured, LLMConfigurationError, LLMAPIError
-from ..models import ComprehensionPass, StructuralOutline, PropositionalExtraction, AnalyticalMetadata, PedagogicalMapping
-from .prompts import (
-    get_phase_1_prompts,
-    get_phase_2_prompts,
-    get_phase_3_prompts,
-    get_phase_4_prompts,
-    get_phase_5_prompts
+from ..models import (
+    ChapterAnalysis,
+    Phase1Comprehension,
+    Phase2Output,
+    Proposition,
+    KeyTakeaway
 )
 
 logger = get_logger(__name__)
 
 # LLM configuration
-DEFAULT_TEMPERATURE = 0.2
-PHASE_1_TEMPERATURE = 0.15  # More deterministic for comprehension
-PHASE_2_TEMPERATURE = 0.2   # Structured outline
-PHASE_3_TEMPERATURE = 0.2   # Propositional extraction
-PHASE_4_TEMPERATURE = 0.25  # Slightly more creative for metadata
-PHASE_5_TEMPERATURE = 0.15  # Precise extraction of pedagogical elements
+PHASE_1_TEMPERATURE = 0.15  # Deterministic for structural analysis
+PHASE_2_TEMPERATURE = 0.2   # Slightly more flexible for extraction
+
+# Prompt file paths
+PROMPT_DIR = Path(__file__).parent.parent.parent / "prompts"
+PHASE_1_PROMPT_PATH = PROMPT_DIR / "phase1_system.txt"
+PHASE_2_PROMPT_PATH = PROMPT_DIR / "phase2_system.txt"
 
 # Environment variable to enable/disable actual LLM calls
 import os
-USE_ACTUAL_LLM = os.getenv("USE_ACTUAL_LLM", "false").lower() == "true"
+USE_ACTUAL_LLM = os.getenv("USE_ACTUAL_LLM", "true").lower() == "true"
 
-def extract_comprehension_pass(text: str) -> Dict[str, Any]:
+def _load_prompt(prompt_path: Path) -> str:
+    """Load system prompt from file."""
+    if not prompt_path.exists():
+        raise FileNotFoundError(f"Prompt file not found: {prompt_path}")
+
+    with open(prompt_path, 'r', encoding='utf-8') as f:
+        return f.read()
+
+
+def run_phase_1(text: str, book_id: str, chapter_id: str, chapter_title: str) -> Phase1Comprehension:
     """
-    Phase 1: Extract comprehension pass using WHO/WHAT/WHEN/WHY/HOW framework.
+    GRAFF Phase 1: Chapter Comprehension and Structural Mapping.
+
+    Extracts:
+    - One-paragraph chapter summary
+    - Hierarchical section structure
+    - Key entities (people, organizations, concepts)
+    - Domain-specific keywords
 
     Args:
         text: The chapter text to analyze
+        book_id: Identifier for the book (e.g., "film_industry_vol1")
+        chapter_id: Unique chapter identifier (e.g., "ch01")
+        chapter_title: Chapter title for context
 
     Returns:
-        Dictionary with 'comprehension_pass' key containing the analysis
+        Phase1Comprehension: Validated Pydantic model with structural analysis
 
     Raises:
         LLMConfigurationError: If OpenAI API is not configured
         LLMAPIError: If API call fails
     """
-    logger.info(f"Phase 1: Extracting comprehension pass (text length: {len(text)} chars)")
-
-    if not USE_ACTUAL_LLM:
-        logger.warning("USE_ACTUAL_LLM=false - returning stub data")
-        return _stub_comprehension_pass()
-
-    # Get comprehensive prompts from prompts module
-    prompts = get_phase_1_prompts(text)
+    logger.info(f"Phase 1 starting: {chapter_id} - {chapter_title} (text length: {len(text)} chars)")
 
     try:
-        response = call_openai_structured(
-            system_prompt=prompts["system_prompt"],
-            user_prompt=prompts["user_prompt"],
+        # Load system prompt from file
+        system_prompt = _load_prompt(PHASE_1_PROMPT_PATH)
+
+        # Construct user prompt with chapter text
+        user_prompt = f"""Chapter Title: {chapter_title}
+Book ID: {book_id}
+Chapter ID: {chapter_id}
+
+Chapter Text:
+{text}
+
+Please analyze this chapter and respond with the Phase 1 JSON output."""
+
+        # Call LLM with structured output
+        response_dict = call_openai_structured(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
             temperature=PHASE_1_TEMPERATURE,
-            json_schema=ComprehensionPass.model_json_schema()
+            json_schema=Phase1Comprehension.model_json_schema()
         )
-        logger.info("Phase 1 completed successfully")
-        return {"comprehension_pass": response}
 
-    except (LLMConfigurationError, LLMAPIError) as e:
-        logger.error(f"Phase 1 failed: {e}")
+        # Validate with Pydantic
+        phase1 = Phase1Comprehension.model_validate(response_dict)
+
+        logger.info(f"Phase 1 completed: {len(phase1.sections)} sections, {len(phase1.key_entities)} entities, {len(phase1.keywords)} keywords")
+        return phase1
+
+    except Exception as e:
+        logger.error(f"Phase 1 failed for {chapter_id}: {e}")
         raise
 
 
-def _stub_comprehension_pass() -> Dict[str, Any]:
-    """Return stub data for testing without LLM."""
-    return {
-        "comprehension_pass": {
-            "who": [],
-            "what": [],
-            "when": {
-                "historical_or_cultural_context": "",
-                "chronological_sequence_within_course": "",
-                "moment_of_presentation_to_reader": ""
-            },
-            "why": {
-                "intellectual_value": "",
-                "knowledge_based_value": "",
-                "moral_or_philosophical_significance": ""
-            },
-            "how": {
-                "presentation_style": "",
-                "rhetorical_approach": "",
-                "recommended_student_strategy": ""
-            }
-        }
-    }
-
-def build_structural_outline(text: str, comp: Dict[str, Any]) -> Dict[str, Any]:
+def run_phase_2(text: str, chapter_id: str, phase1: Phase1Comprehension) -> Phase2Output:
     """
-    Phase 2: Build hierarchical structural outline of the chapter.
+    GRAFF Phase 2: Comprehensive Proposition Extraction + Key Takeaway Synthesis.
+
+    Extracts:
+    - ALL atomic facts (propositions) from the chapter (comprehensive, no limits)
+    - Each proposition tagged with Bloom level (remember, understand, apply, analyze)
+    - Key takeaways synthesizing groups of propositions (analyze, evaluate)
 
     Args:
         text: The chapter text to analyze
-        comp: Output from Phase 1 (comprehension pass)
+        chapter_id: Chapter identifier for proposition IDs
+        phase1: Phase 1 output (used for section unit_ids)
 
     Returns:
-        Dictionary with 'structural_outline' key containing the outline
+        Phase2Output: Validated Pydantic model with propositions and takeaways
 
     Raises:
         LLMConfigurationError: If OpenAI API is not configured
         LLMAPIError: If API call fails
     """
-    logger.info(f"Phase 2: Building structural outline")
-
-    if not USE_ACTUAL_LLM:
-        logger.warning("USE_ACTUAL_LLM=false - returning stub data")
-        return _stub_structural_outline()
-
-    # Get comprehensive prompts from prompts module
-    prompts = get_phase_2_prompts(text, comp)
+    logger.info(f"Phase 2 starting: {chapter_id} (will extract comprehensive propositions)")
 
     try:
-        response = call_openai_structured(
-            system_prompt=prompts["system_prompt"],
-            user_prompt=prompts["user_prompt"],
+        # Load system prompt from file
+        system_prompt = _load_prompt(PHASE_2_PROMPT_PATH)
+
+        # Construct user prompt with chapter text and Phase 1 context
+        phase1_json = phase1.model_dump_json(indent=2)
+
+        user_prompt = f"""Chapter ID: {chapter_id}
+
+Phase 1 Output (for section unit_ids reference):
+{phase1_json}
+
+Chapter Text:
+{text}
+
+Please perform comprehensive Phase 2 extraction:
+1. Extract ALL atomic facts as propositions (no artificial limits)
+2. Tag each with appropriate Bloom level (remember/understand/apply/analyze)
+3. Synthesize key takeaways linking related propositions
+
+Respond with the Phase 2 JSON output."""
+
+        # Call LLM with structured output (higher max_tokens for comprehensive extraction)
+        response_dict = call_openai_structured(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
             temperature=PHASE_2_TEMPERATURE,
-            json_schema=StructuralOutline.model_json_schema()
+            json_schema=Phase2Output.model_json_schema(),
+            max_tokens=16000  # Allow for comprehensive extraction (100-500+ propositions)
         )
-        logger.info("Phase 2 completed successfully")
-        return {"structural_outline": response}
 
-    except (LLMConfigurationError, LLMAPIError) as e:
-        logger.error(f"Phase 2 failed: {e}")
+        # Validate with Pydantic
+        phase2 = Phase2Output.model_validate(response_dict)
+
+        # Log extraction statistics
+        bloom_dist = {}
+        for prop in phase2.propositions:
+            bloom_dist[prop.bloom_level] = bloom_dist.get(prop.bloom_level, 0) + 1
+
+        logger.info(f"Phase 2 completed: {len(phase2.propositions)} propositions, {len(phase2.key_takeaways)} takeaways")
+        logger.info(f"Bloom distribution: {bloom_dist}")
+
+        return phase2
+
+    except Exception as e:
+        logger.error(f"Phase 2 failed for {chapter_id}: {e}")
         raise
 
 
-def _stub_structural_outline() -> Dict[str, Any]:
-    """Return stub data for testing without LLM."""
-    return {
-        "structural_outline": {
-            "chapter_title": "",
-            "guiding_context_questions": [],
-            "outline": []
-        }
-    }
-
-def extract_propositions(text: str, comp: Dict[str, Any], outline: Dict[str, Any]) -> Dict[str, Any]:
+def process_chapter(
+    text: str,
+    book_id: str,
+    chapter_id: str,
+    chapter_title: str
+) -> ChapterAnalysis:
     """
-    Phase 3: Extract truth propositions from the chapter.
+    Run the complete GRAFF 2-phase pipeline on a chapter.
+
+    This is the main orchestration function that:
+    1. Runs Phase 1 (structural comprehension)
+    2. Runs Phase 2 (proposition extraction + synthesis)
+    3. Assembles the complete ChapterAnalysis object
 
     Args:
         text: The chapter text to analyze
-        comp: Output from Phase 1 (comprehension pass)
-        outline: Output from Phase 2 (structural outline)
+        book_id: Book identifier (e.g., "film_industry_vol1")
+        chapter_id: Chapter identifier (e.g., "ch01")
+        chapter_title: Chapter title
 
     Returns:
-        Dictionary with 'propositional_extraction' key containing propositions
+        ChapterAnalysis: Complete validated analysis ready for database storage
 
     Raises:
         LLMConfigurationError: If OpenAI API is not configured
         LLMAPIError: If API call fails
+        ValidationError: If output doesn't match schema
     """
-    logger.info(f"Phase 3: Extracting propositions")
+    logger.info(f"Starting GRAFF pipeline for {chapter_id}: {chapter_title}")
 
-    if not USE_ACTUAL_LLM:
-        logger.warning("USE_ACTUAL_LLM=false - returning stub data")
-        return _stub_propositions()
+    # Run Phase 1
+    phase1 = run_phase_1(text, book_id, chapter_id, chapter_title)
 
-    # Get comprehensive prompts from prompts module
-    prompts = get_phase_3_prompts(text, comp, outline)
+    # Run Phase 2
+    phase2 = run_phase_2(text, chapter_id, phase1)
 
-    try:
-        response = call_openai_structured(
-            system_prompt=prompts["system_prompt"],
-            user_prompt=prompts["user_prompt"],
-            temperature=PHASE_3_TEMPERATURE,
-            json_schema=PropositionalExtraction.model_json_schema()
-        )
-        logger.info("Phase 3 completed successfully")
-        return {"propositional_extraction": response}
+    # Assemble complete analysis
+    chapter = ChapterAnalysis(
+        schema_version="1.0",
+        book_id=book_id,
+        chapter_id=chapter_id,
+        chapter_title=chapter_title,
+        phase1=phase1,
+        phase2=phase2
+    )
 
-    except (LLMConfigurationError, LLMAPIError) as e:
-        logger.error(f"Phase 3 failed: {e}")
-        raise
+    # Log final statistics
+    logger.info(f"GRAFF pipeline completed for {chapter_id}")
+    logger.info(f"  Propositions: {chapter.get_proposition_count()}")
+    logger.info(f"  Bloom distribution: {chapter.get_bloom_distribution()}")
+    logger.info(f"  Key takeaways: {len(chapter.phase2.key_takeaways)}")
 
-
-def _stub_propositions() -> Dict[str, Any]:
-    """Return stub data for testing without LLM."""
-    return {
-        "propositional_extraction": {
-            "definition": "Propositions are statements of truth contextualized by the way information is presented.",
-            "guiding_prompts": [],
-            "propositions": []
-        }
-    }
-
-def derive_analytical_metadata(
-    comp: Dict[str, Any],
-    outline: Dict[str, Any],
-    props: Dict[str, Any],
-    hints: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
-    """
-    Phase 4: Derive analytical metadata about curriculum context.
-
-    Args:
-        comp: Output from Phase 1 (comprehension pass)
-        outline: Output from Phase 2 (structural outline)
-        props: Output from Phase 3 (propositional extraction)
-        hints: Optional hints for metadata derivation
-
-    Returns:
-        Dictionary with 'analytical_metadata' key containing metadata
-
-    Raises:
-        LLMConfigurationError: If OpenAI API is not configured
-        LLMAPIError: If API call fails
-    """
-    logger.info(f"Phase 4: Deriving analytical metadata")
-
-    if not USE_ACTUAL_LLM:
-        logger.warning("USE_ACTUAL_LLM=false - returning stub data")
-        return _stub_analytical_metadata()
-
-    # Get comprehensive prompts from prompts module
-    prompts = get_phase_4_prompts(comp, outline, props)
-
-    try:
-        response = call_openai_structured(
-            system_prompt=prompts["system_prompt"],
-            user_prompt=prompts["user_prompt"],
-            temperature=PHASE_4_TEMPERATURE,
-            json_schema=AnalyticalMetadata.model_json_schema()
-        )
-        logger.info("Phase 4 completed successfully")
-        return {"analytical_metadata": response}
-
-    except (LLMConfigurationError, LLMAPIError) as e:
-        logger.error(f"Phase 4 failed: {e}")
-        raise
-
-
-def _stub_analytical_metadata() -> Dict[str, Any]:
-    """Return stub data for testing without LLM."""
-    return {
-        "analytical_metadata": {
-            "subject_domain": None,
-            "curriculum_unit": None,
-            "disciplinary_lens": None,
-            "related_chapters": [],
-            "grade_level_or_audience": None,
-            "spiral_position": None
-        }
-    }
-
-
-def extract_pedagogical_mapping(text: str) -> Dict[str, Any]:
-    """
-    Phase 5: Extract pedagogical mapping and learning support elements.
-
-    Args:
-        text: The chapter text to analyze
-
-    Returns:
-        Dictionary with 'pedagogical_mapping' key containing pedagogical elements
-
-    Raises:
-        LLMConfigurationError: If OpenAI API is not configured
-        LLMAPIError: If API call fails
-    """
-    logger.info(f"Phase 5: Extracting pedagogical mapping (text length: {len(text)} chars)")
-
-    if not USE_ACTUAL_LLM:
-        logger.warning("USE_ACTUAL_LLM=false - returning stub data")
-        return _stub_pedagogical_mapping()
-
-    # Get comprehensive prompts from prompts module
-    prompts = get_phase_5_prompts(text)
-
-    try:
-        response = call_openai_structured(
-            system_prompt=prompts["system_prompt"],
-            user_prompt=prompts["user_prompt"],
-            temperature=PHASE_5_TEMPERATURE,
-            json_schema=PedagogicalMapping.model_json_schema(),
-            max_tokens=6000  # Focused on 4 core elements: objectives, activities, assessments, discussion questions
-        )
-        logger.info("Phase 5 completed successfully")
-        return {"pedagogical_mapping": response}
-
-    except (LLMConfigurationError, LLMAPIError) as e:
-        logger.error(f"Phase 5 failed: {e}")
-        raise
-
-
-def _stub_pedagogical_mapping() -> Dict[str, Any]:
-    """Return stub data for testing without LLM."""
-    return {
-        "pedagogical_mapping": {
-            "learning_objectives": [],
-            "student_activities": [],
-            "assessment_questions": [],
-            "chapter_summary": None,
-            "review_sections": [],
-            "visual_media_references": [],
-            "temporal_analysis": {
-                "historical_examples": [],
-                "contemporary_examples": [],
-                "temporal_range": None
-            },
-            "potential_discussion_questions": []
-        }
-    }
+    return chapter

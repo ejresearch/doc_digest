@@ -60,7 +60,7 @@
                         <div class="w-2 h-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full animate-pulse"></div>
                         <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Upload Chapter</h2>
                     </div>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">5-phase AI analysis with GPT-4o</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">2-phase GRAFF analysis with GPT-4o</p>
 
                     <form id="uploadForm" class="space-y-4">
                         <!-- File Upload -->
@@ -130,21 +130,12 @@
                         </div>
 
                         <!-- Phase Indicators -->
-                        <div class="mt-6 flex justify-center gap-2">
-                            <div id="phase-1-indicator" class="flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
-                                <span>Phase 1</span>
+                        <div class="mt-6 flex justify-center gap-3">
+                            <div id="phase-1-indicator" class="flex items-center gap-2 px-4 py-2 rounded-full text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 font-medium">
+                                <span>Phase 1: Structure</span>
                             </div>
-                            <div id="phase-2-indicator" class="flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
-                                <span>Phase 2</span>
-                            </div>
-                            <div id="phase-3-indicator" class="flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
-                                <span>Phase 3</span>
-                            </div>
-                            <div id="phase-4-indicator" class="flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
-                                <span>Phase 4</span>
-                            </div>
-                            <div id="phase-5-indicator" class="flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
-                                <span>Phase 5</span>
+                            <div id="phase-2-indicator" class="flex items-center gap-2 px-4 py-2 rounded-full text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 font-medium">
+                                <span>Phase 2: Extraction</span>
                             </div>
                         </div>
                     </div>
@@ -166,22 +157,22 @@
                 <div class="hover-glow group relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800 rounded-xl shadow-md border-2 border-blue-200 dark:border-gray-700 p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400 dark:hover:border-blue-600">
                     <div class="relative z-10">
                         <div class="emoji-float text-4xl mb-3 inline-block">📚</div>
-                        <h3 class="font-black text-gray-900 dark:text-white text-base mb-2 tracking-tight">5-Phase Analysis</h3>
-                        <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Comprehensive analysis from comprehension to pedagogy</p>
+                        <h3 class="font-black text-gray-900 dark:text-white text-base mb-2 tracking-tight">Comprehensive Extraction</h3>
+                        <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Extract ALL atomic facts from textbook chapters</p>
                     </div>
                 </div>
                 <div class="hover-glow group relative overflow-hidden bg-gradient-to-br from-purple-50 via-white to-purple-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800 rounded-xl shadow-md border-2 border-purple-200 dark:border-gray-700 p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-purple-400 dark:hover:border-purple-600">
                     <div class="relative z-10">
                         <div class="emoji-float text-4xl mb-3 inline-block">🎯</div>
-                        <h3 class="font-black text-gray-900 dark:text-white text-base mb-2 tracking-tight">Learning Objectives</h3>
-                        <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Auto-generate objectives, activities, and assessments</p>
+                        <h3 class="font-black text-gray-900 dark:text-white text-base mb-2 tracking-tight">Bloom's Taxonomy</h3>
+                        <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Tag every fact with cognitive level for adaptive learning</p>
                     </div>
                 </div>
                 <div class="hover-glow group relative overflow-hidden bg-gradient-to-br from-green-50 via-white to-green-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800 rounded-xl shadow-md border-2 border-green-200 dark:border-gray-700 p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-green-400 dark:hover:border-green-600">
                     <div class="relative z-10">
-                        <div class="emoji-float text-4xl mb-3 inline-block">⏱️</div>
-                        <h3 class="font-black text-gray-900 dark:text-white text-base mb-2 tracking-tight">Temporal Analysis</h3>
-                        <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Track content relevance and update needs</p>
+                        <div class="emoji-float text-4xl mb-3 inline-block">🔍</div>
+                        <h3 class="font-black text-gray-900 dark:text-white text-base mb-2 tracking-tight">Full-Text Search</h3>
+                        <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">SQLite FTS5 for fast proposition retrieval</p>
                     </div>
                 </div>
             </div>
@@ -204,86 +195,88 @@
                 <div class="flex gap-2 overflow-x-auto pb-4 mb-6 relative">
                     <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 opacity-20"></div>
                     <button class="tab px-5 py-2.5 text-sm font-bold rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 text-white shadow-lg transition-all duration-200 hover:shadow-xl" data-tab="overview">Overview</button>
-                    <button class="tab px-5 py-2.5 text-sm font-semibold rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-50 dark:hover:from-gray-700 dark:hover:to-gray-700 transition-all duration-200 hover:scale-105 hover:shadow-md" data-tab="metadata">Metadata</button>
-                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="comprehension">Comprehension</button>
-                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="outline">Outline</button>
+                    <button class="tab px-5 py-2.5 text-sm font-semibold rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-50 dark:hover:from-gray-700 dark:hover:to-gray-700 transition-all duration-200 hover:scale-105 hover:shadow-md" data-tab="phase1">Phase 1: Structure</button>
                     <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="propositions">Propositions</button>
-                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="analytics">Analytics</button>
-                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="pedagogy">Pedagogy</button>
-                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="activities">Activities</button>
-                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="questions">Questions</button>
-                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="temporal">Temporal</button>
+                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="takeaways">Key Takeaways</button>
+                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="bloom">Bloom Analysis</button>
                     <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="raw">Raw JSON</button>
                 </div>
 
                 <!-- Tab Content -->
                 <div class="tab-content">
+                    <!-- Overview Tab -->
                     <div class="tab-panel" id="overview">
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Chapter Info</h3>
-                                <div id="chapterInfo" class="text-sm text-gray-700 dark:text-gray-300 space-y-1"></div>
+                        <div id="graffOverview"></div>
+                    </div>
+
+                    <!-- Phase 1: Structure Tab -->
+                    <div class="tab-panel hidden" id="phase1">
+                        <div class="space-y-6">
+                            <!-- Summary -->
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-5">
+                                <h3 class="text-base font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                    <span class="text-xl">📝</span>
+                                    <span>Chapter Summary</span>
+                                </h3>
+                                <div id="summaryContent" class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed"></div>
                             </div>
-                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Quick Stats</h3>
-                                <div id="quickStats" class="text-sm text-gray-700 dark:text-gray-300 space-y-1"></div>
+
+                            <!-- Sections Tree -->
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-5">
+                                <h3 class="text-base font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                    <span class="text-xl">📚</span>
+                                    <span>Chapter Structure</span>
+                                </h3>
+                                <div id="sectionsTree" class="text-sm space-y-2"></div>
+                            </div>
+
+                            <!-- Key Entities -->
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-5">
+                                <h3 class="text-base font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                    <span class="text-xl">👥</span>
+                                    <span>Key Entities</span>
+                                </h3>
+                                <div id="entitiesContent"></div>
+                            </div>
+
+                            <!-- Keywords -->
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-5">
+                                <h3 class="text-base font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                    <span class="text-xl">🏷️</span>
+                                    <span>Keywords</span>
+                                </h3>
+                                <div id="keywordsContent"></div>
                             </div>
                         </div>
-                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Key Concepts</h3>
-                            <div id="keyConcepts"></div>
-                        </div>
                     </div>
 
-                    <div class="tab-panel hidden" id="metadata">
-                        <div id="metadataContent" class="space-y-3 text-sm"></div>
-                    </div>
-
-                    <div class="tab-panel hidden" id="comprehension">
-                        <div class="space-y-4">
-                            <div><h3 class="font-semibold text-gray-900 dark:text-white mb-2">Who</h3><div id="comprehensionWho"></div></div>
-                            <div><h3 class="font-semibold text-gray-900 dark:text-white mb-2">What</h3><div id="comprehensionWhat"></div></div>
-                            <div><h3 class="font-semibold text-gray-900 dark:text-white mb-2">When</h3><div id="comprehensionWhen"></div></div>
-                            <div><h3 class="font-semibold text-gray-900 dark:text-white mb-2">Why</h3><div id="comprehensionWhy"></div></div>
-                            <div><h3 class="font-semibold text-gray-900 dark:text-white mb-2">How</h3><div id="comprehensionHow"></div></div>
-                        </div>
-                    </div>
-
-                    <div class="tab-panel hidden" id="outline">
-                        <div id="outlineContent"></div>
-                    </div>
-
+                    <!-- Propositions Tab -->
                     <div class="tab-panel hidden" id="propositions">
-                        <div id="propositionsList"></div>
-                    </div>
-
-                    <div class="tab-panel hidden" id="analytics">
-                        <div id="analyticsContent" class="space-y-3 text-sm text-gray-700 dark:text-gray-300"></div>
-                    </div>
-
-                    <div class="tab-panel hidden" id="pedagogy">
                         <div class="space-y-4">
-                            <div><h3 class="font-semibold text-gray-900 dark:text-white mb-2">Learning Objectives</h3><div id="pedagogyObjectives"></div></div>
-                            <div><h3 class="font-semibold text-gray-900 dark:text-white mb-2">Chapter Summary</h3><div id="pedagogySummary"></div></div>
-                            <div><h3 class="font-semibold text-gray-900 dark:text-white mb-2">Discussion Questions</h3><div id="pedagogyDiscussion"></div></div>
+                            <!-- Bloom Filter -->
+                            <div class="flex items-center justify-between flex-wrap gap-3">
+                                <div id="bloomFilter" class="flex gap-2 flex-wrap"></div>
+                                <div id="propositionsCount" class="text-sm font-semibold text-gray-700 dark:text-gray-300"></div>
+                            </div>
+                            <!-- Propositions List -->
+                            <div id="propositionsList" class="space-y-3"></div>
                         </div>
                     </div>
 
-                    <div class="tab-panel hidden" id="activities">
-                        <div id="activitiesContent"></div>
+                    <!-- Key Takeaways Tab -->
+                    <div class="tab-panel hidden" id="takeaways">
+                        <div id="takeawaysList" class="space-y-4"></div>
                     </div>
 
-                    <div class="tab-panel hidden" id="questions">
-                        <div id="questionsContent"></div>
+                    <!-- Bloom Analysis Tab -->
+                    <div class="tab-panel hidden" id="bloom">
+                        <div id="bloomCharts" class="space-y-6"></div>
                     </div>
 
-                    <div class="tab-panel hidden" id="temporal">
-                        <div id="temporalContent"></div>
-                    </div>
-
+                    <!-- Raw JSON Tab -->
                     <div class="tab-panel hidden" id="raw">
                         <div class="relative">
-                            <button id="copyJsonBtn" class="absolute top-2 right-2 px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded">Copy</button>
+                            <button id="copyJsonBtn" class="absolute top-2 right-2 px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded transition-colors">Copy</button>
                             <pre id="rawJson" class="bg-gray-900 dark:bg-black text-green-400 dark:text-green-300 p-4 rounded-lg text-xs overflow-x-auto max-h-[600px] overflow-y-auto"></pre>
                         </div>
                     </div>

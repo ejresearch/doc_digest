@@ -46,11 +46,15 @@ async function loadExistingChapters() {
         if (data.chapters && data.chapters.length > 0) {
             container.innerHTML = data.chapters.map(chapter => `
                 <div class="group relative w-full">
-                    <button onclick="loadChapter('${chapter.filename}')" class="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors">
-                        <div class="font-semibold text-sm text-gray-900 dark:text-white">${chapter.chapter_id || 'Unknown'}</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">${chapter.source_text || 'No source'} • v${chapter.version || 'N/A'}</div>
+                    <button onclick="loadChapter('${chapter.chapter_id}')" class="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors">
+                        <div class="font-semibold text-sm text-gray-900 dark:text-white">${chapter.chapter_title || chapter.chapter_id || 'Unknown'}</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <span class="inline-block mr-2">📝 ${chapter.proposition_count || 0} propositions</span>
+                            <span class="inline-block mr-2">💡 ${chapter.takeaway_count || 0} takeaways</span>
+                        </div>
+                        <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">ID: ${chapter.chapter_id} • ${chapter.book_id || 'Unknown book'}</div>
                     </button>
-                    <button onclick="event.stopPropagation(); deleteChapter('${chapter.filename}')" class="absolute top-1/2 -translate-y-1/2 right-2 opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 rounded-lg transition-all hover:bg-gray-200 dark:hover:bg-gray-600" title="Delete this analysis">
+                    <button onclick="event.stopPropagation(); deleteChapter('${chapter.chapter_id}')" class="absolute top-1/2 -translate-y-1/2 right-2 opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 rounded-lg transition-all hover:bg-gray-200 dark:hover:bg-gray-600" title="Delete this analysis">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
@@ -66,13 +70,13 @@ async function loadExistingChapters() {
 }
 
 // Delete chapter
-window.deleteChapter = async function(filename) {
+window.deleteChapter = async function(chapter_id) {
     if (!confirm('Are you sure you want to delete this analysis? This action cannot be undone.')) {
         return;
     }
 
     try {
-        const response = await fetch(`/chapters/${filename}`, {
+        const response = await fetch(`/chapters/${chapter_id}`, {
             method: 'DELETE'
         });
 
@@ -92,9 +96,9 @@ window.deleteChapter = async function(filename) {
 };
 
 // Load specific chapter
-window.loadChapter = async function(filename) {
+window.loadChapter = async function(chapter_id) {
     try {
-        const response = await fetch(`/chapters/${filename}`);
+        const response = await fetch(`/chapters/${chapter_id}`);
         if (!response.ok) throw new Error('Failed to load chapter');
 
         const data = await response.json();
@@ -227,7 +231,7 @@ uploadForm.addEventListener('submit', async (e) => {
                                 if (diffMinutes < 5) {
                                     console.log('Analysis completed! Loading results...');
                                     updateProgress('completed', 'Analysis complete!', 100);
-                                    await loadChapter(latestChapter.filename);
+                                    await loadChapter(latestChapter.chapter_id);
                                     return;
                                 }
                             }
@@ -261,7 +265,7 @@ uploadForm.addEventListener('submit', async (e) => {
                             // Find the most recent chapter (should be our new one)
                             if (listData.chapters && listData.chapters.length > 0) {
                                 const latestChapter = listData.chapters[listData.chapters.length - 1];
-                                await loadChapter(latestChapter.filename);
+                                await loadChapter(latestChapter.chapter_id);
                             } else {
                                 throw new Error('No chapters found after analysis');
                             }
@@ -312,7 +316,7 @@ uploadForm.addEventListener('submit', async (e) => {
                         // Analysis completed! Load the results
                         console.log('Analysis completed! Loading results...');
                         updateProgress('completed', 'Analysis complete!', 100);
-                        await loadChapter(latestChapter.filename);
+                        await loadChapter(latestChapter.chapter_id);
                         return;
                     }
                 }
@@ -457,193 +461,441 @@ function updateProgress(phase, message, percent) {
     }
 }
 
-// Show results
+// Global state for Bloom filtering
+let currentBloomFilter = 'all';
+
+// Show results - GRAFF 2-phase structure
 function showResults(data) {
     uploadSection.classList.add('hidden');
     resultsSection.classList.remove('hidden');
 
-    renderOverview(data);
-    renderMetadata(data);
-    renderComprehension(data);
-    renderOutline(data);
-    renderPropositions(data);
-    renderAnalytics(data);
-    renderPedagogy(data);
-    renderActivities(data);
-    renderQuestions(data);
-    renderTemporal(data);
+    // GRAFF render functions
+    renderGraffOverview(data);
+    renderPhase1Summary(data);
+    renderPhase1Sections(data);
+    renderPhase1Entities(data);
+    renderPhase1Keywords(data);
+    renderPhase2Propositions(data);
+    renderPhase2Takeaways(data);
+    renderBloomDistribution(data);
     renderRawJson(data);
 }
 
-// Render functions
-function renderOverview(data) {
-    document.getElementById('chapterInfo').innerHTML = `
-        <p><strong>Chapter ID:</strong> ${data.system_metadata?.chapter_id || 'N/A'}</p>
-        <p><strong>Version:</strong> ${data.system_metadata?.version || 'N/A'}</p>
-        <p><strong>Source:</strong> ${data.system_metadata?.source_text || 'N/A'}</p>
-        <p><strong>Author:</strong> ${data.system_metadata?.author_or_editor || 'Unknown'}</p>
-    `;
+// ============================================================================
+// GRAFF Render Functions
+// ============================================================================
 
-    document.getElementById('quickStats').innerHTML = `
-        <p><strong>Learning Objectives:</strong> ${data.pedagogical_mapping?.learning_objectives?.length || 0}</p>
-        <p><strong>Activities:</strong> ${data.pedagogical_mapping?.student_activities?.length || 0}</p>
-        <p><strong>Propositions:</strong> ${data.propositional_extraction?.propositions?.length || 0}</p>
-        <p><strong>Subject:</strong> ${data.analytical_metadata?.subject_domain || 'N/A'}</p>
-    `;
-
-    const concepts = data.comprehension_pass?.what || [];
-    document.getElementById('keyConcepts').innerHTML = concepts.slice(0, 5).map(c => `
-        <div class="mb-3 pb-3 border-b border-gray-200 dark:border-gray-600 last:border-0">
-            <p class="font-semibold text-sm text-gray-900 dark:text-white">${c.concept_or_topic}</p>
-            <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">${c.definition_or_description || ''}</p>
-        </div>
-    `).join('') || '<p class="text-sm text-gray-500 dark:text-gray-400">No concepts found</p>';
+// Helper: Calculate Bloom distribution
+function calculateBloomDistribution(propositions) {
+    const dist = {remember: 0, understand: 0, apply: 0, analyze: 0};
+    propositions.forEach(p => {
+        if (dist.hasOwnProperty(p.bloom_level)) {
+            dist[p.bloom_level]++;
+        }
+    });
+    return dist;
 }
 
-function renderMetadata(data) {
-    const meta = data.system_metadata || {};
-    document.getElementById('metadataContent').innerHTML = `
-        <p><strong>Chapter ID:</strong> ${meta.chapter_id || 'N/A'}</p>
-        <p><strong>File Name:</strong> ${meta.file_name || 'N/A'}</p>
-        <p><strong>Author/Editor:</strong> ${meta.author_or_editor || 'Unknown'}</p>
-        <p><strong>Version:</strong> ${meta.version || 'N/A'}</p>
-        <p><strong>Created:</strong> ${meta.created_at || 'N/A'}</p>
-        <p><strong>Source:</strong> ${meta.source_text || 'N/A'}</p>
-    `;
+// Helper: Get Bloom color class
+function getBloomColorClass(level) {
+    const colors = {
+        remember: 'bg-blue-500',
+        understand: 'bg-green-500',
+        apply: 'bg-yellow-500',
+        analyze: 'bg-purple-500',
+        evaluate: 'bg-red-500'
+    };
+    return colors[level] || 'bg-gray-500';
 }
 
-function renderComprehension(data) {
-    const comp = data.comprehension_pass || {};
+// Render GRAFF Overview
+function renderGraffOverview(data) {
+    const overviewEl = document.getElementById('graffOverview');
+    if (!overviewEl) return;
 
-    // Who
-    const who = comp.who || [];
-    document.getElementById('comprehensionWho').innerHTML = who.map(item => `
-        <div class="mb-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <p class="font-semibold text-sm text-gray-900 dark:text-white">${item.entity}</p>
-            ${item.role_or_function ? `<p class="text-xs text-gray-600 dark:text-gray-400 mt-1">Role: ${item.role_or_function}</p>` : ''}
-            ${item.significance_in_chapter ? `<p class="text-xs text-gray-600 dark:text-gray-400 mt-1">Significance: ${item.significance_in_chapter}</p>` : ''}
-        </div>
-    `).join('') || '<p class="text-sm text-gray-500 dark:text-gray-400">No entities found</p>';
+    const propositions = data.phase2?.propositions || [];
+    const takeaways = data.phase2?.key_takeaways || [];
+    const sections = data.phase1?.sections || [];
+    const entities = data.phase1?.key_entities || [];
+    const keywords = data.phase1?.keywords || [];
+    const summary = data.phase1?.summary || '';
 
-    // What
-    const what = comp.what || [];
-    document.getElementById('comprehensionWhat').innerHTML = what.map(item => `
-        <div class="mb-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <p class="font-semibold text-sm text-gray-900 dark:text-white">${item.concept_or_topic}</p>
-            ${item.definition_or_description ? `<p class="text-xs text-gray-600 dark:text-gray-400 mt-1">${item.definition_or_description}</p>` : ''}
-        </div>
-    `).join('') || '<p class="text-sm text-gray-500 dark:text-gray-400">No concepts found</p>';
+    const bloomDist = calculateBloomDistribution(propositions);
+    const totalProps = propositions.length;
 
-    // When/Why/How
-    const when = comp.when || {};
-    document.getElementById('comprehensionWhen').innerHTML = `
-        <div class="space-y-2 text-sm">
-            <p><strong>Historical Context:</strong> ${when.historical_or_cultural_context || 'N/A'}</p>
-            <p><strong>Chronological Sequence:</strong> ${when.chronological_sequence_within_course || 'N/A'}</p>
-        </div>
-    `;
-
-    const why = comp.why || {};
-    document.getElementById('comprehensionWhy').innerHTML = `
-        <div class="space-y-2 text-sm">
-            <p><strong>Intellectual Value:</strong> ${why.intellectual_value || 'N/A'}</p>
-            <p><strong>Knowledge Value:</strong> ${why.knowledge_based_value || 'N/A'}</p>
-        </div>
-    `;
-
-    const how = comp.how || {};
-    document.getElementById('comprehensionHow').innerHTML = `
-        <div class="space-y-2 text-sm">
-            <p><strong>Presentation Style:</strong> ${how.presentation_style || 'N/A'}</p>
-            <p><strong>Rhetorical Approach:</strong> ${how.rhetorical_approach || 'N/A'}</p>
-        </div>
-    `;
-}
-
-function renderOutline(data) {
-    const struct = data.structural_outline || {};
-    const sections = struct.outline || [];
-
-    document.getElementById('outlineContent').innerHTML = `
-        <h4 class="text-lg font-semibold text-gray-900 mb-4">${struct.chapter_title || 'Chapter'}</h4>
-        ${sections.map((s, i) => `
-            <div class="mb-4 p-4 bg-gray-50 rounded-lg">
-                <p class="font-semibold text-sm">${i+1}. ${s.section_title}</p>
-                ${s.section_summary ? `<p class="text-xs text-gray-600 mt-2">${s.section_summary}</p>` : ''}
+    overviewEl.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Chapter Info -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Chapter Information</h3>
+                <div class="space-y-2 text-sm">
+                    <p><strong>Title:</strong> <span class="text-gray-700 dark:text-gray-300">${data.chapter_title || 'N/A'}</span></p>
+                    <p><strong>Book ID:</strong> <span class="text-gray-700 dark:text-gray-300">${data.book_id || 'N/A'}</span></p>
+                    <p><strong>Chapter ID:</strong> <span class="text-gray-700 dark:text-gray-300">${data.chapter_id || 'N/A'}</span></p>
+                    <p><strong>Schema:</strong> <span class="text-gray-700 dark:text-gray-300">GRAFF v${data.schema_version || '1.0'}</span></p>
+                </div>
             </div>
-        `).join('')}
-    ` || '<p class="text-sm text-gray-500">No outline available</p>';
-}
 
-function renderPropositions(data) {
-    const props = data.propositional_extraction?.propositions || [];
-
-    document.getElementById('propositionsList').innerHTML = props.map((p, i) => `
-        <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div class="flex items-center gap-2 mb-2">
-                <span class="px-2 py-1 bg-blue-600 dark:bg-blue-500 text-white text-xs font-semibold rounded">#${i+1}</span>
-                ${p.truth_type ? `<span class="text-xs text-gray-600 dark:text-gray-400">${p.truth_type}</span>` : ''}
+            <!-- Quick Stats -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Stats</h3>
+                <div class="space-y-2 text-sm">
+                    <p><strong>Summary:</strong> <span class="text-gray-700 dark:text-gray-300">${summary.length} characters</span></p>
+                    <p><strong>Sections:</strong> <span class="text-gray-700 dark:text-gray-300">${sections.length}</span></p>
+                    <p><strong>Entities:</strong> <span class="text-gray-700 dark:text-gray-300">${entities.length}</span></p>
+                    <p><strong>Keywords:</strong> <span class="text-gray-700 dark:text-gray-300">${keywords.length}</span></p>
+                    <p><strong>📝 Propositions:</strong> <span class="text-blue-600 dark:text-blue-400 font-semibold">${totalProps}</span></p>
+                    <p><strong>💡 Key Takeaways:</strong> <span class="text-purple-600 dark:text-purple-400 font-semibold">${takeaways.length}</span></p>
+                </div>
             </div>
-            <p class="text-sm font-medium text-gray-900 dark:text-white">${p.statement}</p>
-            ${p.evidence_from_text ? `<p class="text-xs text-gray-600 dark:text-gray-400 mt-2">${p.evidence_from_text}</p>` : ''}
-        </div>
-    `).join('') || '<p class="text-sm text-gray-500 dark:text-gray-400">No propositions found</p>';
-}
 
-function renderAnalytics(data) {
-    const meta = data.analytical_metadata || {};
-    document.getElementById('analyticsContent').innerHTML = `
-        <p><strong>Subject Domain:</strong> ${meta.subject_domain || 'N/A'}</p>
-        <p><strong>Curriculum Unit:</strong> ${meta.curriculum_unit || 'N/A'}</p>
-        <p><strong>Disciplinary Lens:</strong> ${meta.disciplinary_lens || 'N/A'}</p>
-        <p><strong>Grade Level:</strong> ${meta.grade_level_or_audience || 'N/A'}</p>
+            <!-- Bloom Distribution Preview -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow md:col-span-2">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Bloom Distribution Preview</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    ${Object.entries(bloomDist).map(([level, count]) => {
+                        const percentage = totalProps > 0 ? ((count / totalProps) * 100).toFixed(1) : '0.0';
+                        return `
+                            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <div class="text-xs uppercase font-semibold text-gray-600 dark:text-gray-400 mb-1">${level}</div>
+                                <div class="text-2xl font-bold text-gray-900 dark:text-white">${count}</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">${percentage}%</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        </div>
     `;
 }
 
-function renderPedagogy(data) {
-    const ped = data.pedagogical_mapping || {};
+// Render Phase 1: Summary
+function renderPhase1Summary(data) {
+    const el = document.getElementById('summaryContent');
+    if (!el) return;
 
-    document.getElementById('pedagogyObjectives').innerHTML = (ped.learning_objectives || []).map(obj => `
-        <li class="text-sm text-gray-700 mb-2">${obj}</li>
-    `).join('') ? `<ol class="list-decimal list-inside">${(ped.learning_objectives || []).map(obj => `<li class="text-sm text-gray-700 mb-2">${obj}</li>`).join('')}</ol>` : '<p class="text-sm text-gray-500">No objectives found</p>';
-
-    document.getElementById('pedagogySummary').innerHTML = `<p class="text-sm text-gray-700">${ped.chapter_summary || 'No summary available'}</p>`;
-
-    document.getElementById('pedagogyDiscussion').innerHTML = (ped.potential_discussion_questions || []).map(q => `
-        <li class="text-sm text-gray-700 mb-2">${q}</li>
-    `).join('') ? `<ol class="list-decimal list-inside">${(ped.potential_discussion_questions || []).map(q => `<li class="text-sm text-gray-700 mb-2">${q}</li>`).join('')}</ol>` : '<p class="text-sm text-gray-500">No questions found</p>';
+    const summary = data.phase1?.summary || 'No summary available';
+    el.innerHTML = `
+        <p class="text-gray-700 dark:text-gray-300 leading-relaxed">${summary}</p>
+    `;
 }
 
-function renderActivities(data) {
-    const acts = data.pedagogical_mapping?.student_activities || [];
-    document.getElementById('activitiesContent').innerHTML = acts.map(a => `
-        <div class="mb-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs font-semibold rounded">${a.activity_type || 'Activity'}</span>
-            <p class="text-sm text-gray-700 dark:text-gray-300 mt-2">${a.description || ''}</p>
+// Render Phase 1: Sections
+function renderPhase1Sections(data) {
+    const el = document.getElementById('sectionsTree');
+    if (!el) return;
+
+    const sections = data.phase1?.sections || [];
+    if (sections.length === 0) {
+        el.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No sections found</p>';
+        return;
+    }
+
+    el.innerHTML = sections.map(s => {
+        const indent = (s.level - 1) * 24;
+        return `
+            <div class="mb-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg" style="margin-left: ${indent}px;">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs font-mono rounded">${s.unit_id}</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">Level ${s.level}</span>
+                </div>
+                <p class="font-semibold text-sm text-gray-900 dark:text-white">${s.title}</p>
+                ${s.start_location ? `<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">📍 ${s.start_location}</p>` : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+// Render Phase 1: Entities
+function renderPhase1Entities(data) {
+    const el = document.getElementById('entitiesContent');
+    if (!el) return;
+
+    const entities = data.phase1?.key_entities || [];
+    if (entities.length === 0) {
+        el.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No entities found</p>';
+        return;
+    }
+
+    // Group by type
+    const grouped = {};
+    entities.forEach(e => {
+        if (!grouped[e.type]) grouped[e.type] = [];
+        grouped[e.type].push(e.name);
+    });
+
+    const typeIcons = {
+        person: '👤',
+        organization: '🏢',
+        concept: '💡',
+        event: '📅',
+        place: '📍',
+        technology: '🔧'
+    };
+
+    el.innerHTML = Object.entries(grouped).map(([type, names]) => `
+        <div class="mb-4">
+            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                ${typeIcons[type] || '•'} ${type.charAt(0).toUpperCase() + type.slice(1)} (${names.length})
+            </h4>
+            <div class="flex flex-wrap gap-2">
+                ${names.map(name => `
+                    <span class="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs rounded-full">${name}</span>
+                `).join('')}
+            </div>
         </div>
-    `).join('') || '<p class="text-sm text-gray-500 dark:text-gray-400">No activities found</p>';
+    `).join('');
 }
 
-function renderQuestions(data) {
-    const qs = data.pedagogical_mapping?.assessment_questions || [];
-    document.getElementById('questionsContent').innerHTML = qs.map(q => `
-        <div class="mb-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <span class="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs font-semibold rounded">${q.question_type || 'Question'}</span>
-            <p class="text-sm text-gray-700 dark:text-gray-300 mt-2"><strong>Q:</strong> ${q.question || ''}</p>
+// Render Phase 1: Keywords
+function renderPhase1Keywords(data) {
+    const el = document.getElementById('keywordsContent');
+    if (!el) return;
+
+    const keywords = data.phase1?.keywords || [];
+    if (keywords.length === 0) {
+        el.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No keywords found</p>';
+        return;
+    }
+
+    el.innerHTML = `
+        <div class="flex flex-wrap gap-2">
+            ${keywords.map(kw => `
+                <span class="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-full border border-gray-300 dark:border-gray-600">${kw}</span>
+            `).join('')}
         </div>
-    `).join('') || '<p class="text-sm text-gray-500 dark:text-gray-400">No questions found</p>';
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-4">${keywords.length} keywords total</p>
+    `;
 }
 
-function renderTemporal(data) {
-    const temp = data.pedagogical_mapping?.temporal_analysis || {};
-    document.getElementById('temporalContent').innerHTML = `
-        <p class="text-lg font-semibold text-blue-600 dark:text-blue-400">${temp.temporal_range || 'N/A'}</p>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Content spans from ${temp.temporal_range || 'unknown period'}</p>
+// Render Phase 2: Propositions (with Bloom filter)
+function renderPhase2Propositions(data) {
+    const propositions = data.phase2?.propositions || [];
+
+    // Render filter buttons
+    renderBloomFilter(propositions);
+
+    // Render propositions list
+    renderPropositionsList(propositions);
+}
+
+function renderBloomFilter(propositions) {
+    const el = document.getElementById('bloomFilter');
+    if (!el) return;
+
+    const bloomDist = calculateBloomDistribution(propositions);
+    const total = propositions.length;
+
+    const bloomLevels = [
+        {key: 'all', label: 'All', count: total},
+        {key: 'remember', label: 'Remember', count: bloomDist.remember},
+        {key: 'understand', label: 'Understand', count: bloomDist.understand},
+        {key: 'apply', label: 'Apply', count: bloomDist.apply},
+        {key: 'analyze', label: 'Analyze', count: bloomDist.analyze}
+    ];
+
+    el.innerHTML = `
+        <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Filter by Bloom Level:</p>
+            <div class="flex flex-wrap gap-2">
+                ${bloomLevels.map(level => `
+                    <button
+                        onclick="filterPropositions('${level.key}')"
+                        class="bloom-filter-btn px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                            currentBloomFilter === level.key
+                                ? 'bg-blue-600 text-white shadow-md'
+                                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
+                        }">
+                        ${level.label} (${level.count})
+                    </button>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function renderPropositionsList(propositions) {
+    const el = document.getElementById('propositionsList');
+    if (!el) return;
+
+    // Filter propositions
+    const filtered = currentBloomFilter === 'all'
+        ? propositions
+        : propositions.filter(p => p.bloom_level === currentBloomFilter);
+
+    if (filtered.length === 0) {
+        el.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No propositions found for this filter</p>';
+        return;
+    }
+
+    el.innerHTML = filtered.map((p, i) => {
+        const bloomColor = getBloomColorClass(p.bloom_level);
+        return `
+            <div class="mb-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-semibold rounded">#${i+1}</span>
+                    <span class="px-3 py-1 ${bloomColor} text-white text-xs font-semibold uppercase rounded-full">${p.bloom_level}</span>
+                    <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded">${p.bloom_verb}</span>
+                </div>
+                <p class="text-sm font-medium text-gray-900 dark:text-white mb-3">${p.proposition_text}</p>
+                <div class="space-y-2 text-xs text-gray-600 dark:text-gray-400">
+                    <p><strong>📍 Evidence:</strong> ${p.evidence_location}</p>
+                    <p><strong>📂 Unit:</strong> ${p.unit_id}</p>
+                    <p><strong>📝 Source:</strong> ${p.source_type}</p>
+                    ${p.tags && p.tags.length > 0 ? `
+                        <div class="flex items-center gap-2 flex-wrap mt-2">
+                            <strong>🏷️ Tags:</strong>
+                            ${p.tags.map(tag => `<span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">${tag}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Update count
+    const countEl = document.getElementById('propositionsCount');
+    if (countEl) {
+        countEl.textContent = `Showing ${filtered.length} of ${propositions.length} propositions`;
+    }
+}
+
+// Global function for filter buttons
+window.filterPropositions = function(bloomLevel) {
+    currentBloomFilter = bloomLevel;
+    renderPhase2Propositions(currentResults);
+};
+
+// Render Phase 2: Key Takeaways
+function renderPhase2Takeaways(data) {
+    const el = document.getElementById('takeawaysList');
+    if (!el) return;
+
+    const takeaways = data.phase2?.key_takeaways || [];
+    if (takeaways.length === 0) {
+        el.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No key takeaways found</p>';
+        return;
+    }
+
+    el.innerHTML = takeaways.map((t, i) => {
+        const bloomColor = t.dominant_bloom_level ? getBloomColorClass(t.dominant_bloom_level) : 'bg-gray-500';
+        return `
+            <div class="mb-4 p-5 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 text-xs font-semibold rounded">#${i+1}</span>
+                    ${t.dominant_bloom_level ? `<span class="px-3 py-1 ${bloomColor} text-white text-xs font-semibold uppercase rounded-full">${t.dominant_bloom_level}</span>` : ''}
+                </div>
+                <p class="text-base font-medium text-gray-900 dark:text-white mb-4 leading-relaxed">${t.text}</p>
+                <div class="space-y-2 text-xs text-gray-600 dark:text-gray-400">
+                    ${t.unit_id ? `<p><strong>📂 Unit:</strong> ${t.unit_id}</p>` : ''}
+                    <p><strong>🔗 Based on ${t.proposition_ids.length} proposition(s):</strong></p>
+                    <div class="flex flex-wrap gap-1 ml-4">
+                        ${t.proposition_ids.map(pid => `
+                            <span class="px-2 py-1 bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-xs font-mono">${pid}</span>
+                        `).join('')}
+                    </div>
+                    ${t.tags && t.tags.length > 0 ? `
+                        <div class="flex items-center gap-2 flex-wrap mt-2">
+                            <strong>🏷️ Tags:</strong>
+                            ${t.tags.map(tag => `<span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">${tag}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Render Bloom Distribution Charts
+function renderBloomDistribution(data) {
+    const el = document.getElementById('bloomCharts');
+    if (!el) return;
+
+    const propositions = data.phase2?.propositions || [];
+    const takeaways = data.phase2?.key_takeaways || [];
+
+    const propDist = calculateBloomDistribution(propositions);
+    const totalProps = propositions.length;
+
+    // Calculate takeaway distribution
+    const takeawayDist = {analyze: 0, evaluate: 0};
+    takeaways.forEach(t => {
+        if (t.dominant_bloom_level && takeawayDist.hasOwnProperty(t.dominant_bloom_level)) {
+            takeawayDist[t.dominant_bloom_level]++;
+        }
+    });
+    const totalTakeaways = takeaways.length;
+
+    // Target ranges for validation
+    const targets = {
+        remember: {min: 20, max: 30},
+        understand: {min: 30, max: 40},
+        apply: {min: 10, max: 15},
+        analyze: {min: 20, max: 25}
+    };
+
+    el.innerHTML = `
+        <div class="space-y-8">
+            <!-- Propositions Distribution -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Proposition Distribution by Bloom Level</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Total: ${totalProps} propositions</p>
+                <div class="space-y-3">
+                    ${Object.entries(propDist).map(([level, count]) => {
+                        const percentage = totalProps > 0 ? ((count / totalProps) * 100).toFixed(1) : '0.0';
+                        const target = targets[level];
+                        const inRange = totalProps > 0 && parseFloat(percentage) >= target.min && parseFloat(percentage) <= target.max;
+                        const bloomColor = getBloomColorClass(level);
+                        return `
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">${level}</span>
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">
+                                        ${count} (${percentage}%)
+                                        ${inRange ? '✓' : ''}
+                                        <span class="text-xs text-gray-500">Target: ${target.min}-${target.max}%</span>
+                                    </span>
+                                </div>
+                                <div class="h-6 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                    <div class="${bloomColor} h-full transition-all duration-500" style="width: ${percentage}%"></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+
+            <!-- Takeaways Distribution -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Key Takeaway Distribution by Bloom Level</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Total: ${totalTakeaways} takeaways</p>
+                <div class="space-y-3">
+                    ${Object.entries(takeawayDist).map(([level, count]) => {
+                        const percentage = totalTakeaways > 0 ? ((count / totalTakeaways) * 100).toFixed(1) : '0.0';
+                        const bloomColor = getBloomColorClass(level);
+                        return `
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">${level}</span>
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">${count} (${percentage}%)</span>
+                                </div>
+                                <div class="h-6 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                    <div class="${bloomColor} h-full transition-all duration-500" style="width: ${percentage}%"></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        </div>
     `;
 }
 
 function renderRawJson(data) {
-    document.getElementById('rawJson').textContent = JSON.stringify(data, null, 2);
+    const el = document.getElementById('rawJson');
+    if (el) {
+        el.textContent = JSON.stringify(data, null, 2);
+    }
 }
 
 // Tab switching
@@ -677,6 +929,52 @@ if (copyJsonBtn) {
     });
 }
 
+// Reset processing status to initial state
+function resetProcessingStatus() {
+    // Hide processing status
+    processingStatus.classList.add('hidden');
+
+    // Reset progress elements
+    const progressPhase = document.getElementById('progressPhase');
+    const progressMessage = document.getElementById('progressMessage');
+    const progressBar = document.getElementById('progressBar');
+    const progressPercent = document.getElementById('progressPercent');
+    const progressETA = document.getElementById('progressETA');
+
+    if (progressPhase) {
+        progressPhase.textContent = 'Processing chapter...';
+        progressPhase.className = 'text-sm font-semibold text-gray-700 dark:text-gray-300';
+    }
+    if (progressMessage) {
+        progressMessage.textContent = 'Starting analysis...';
+        progressMessage.className = 'text-xs text-gray-500 dark:text-gray-400 mt-1';
+    }
+    if (progressBar) {
+        progressBar.style.width = '0%';
+        progressBar.className = 'bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full transition-all duration-500 ease-out';
+    }
+    if (progressPercent) {
+        progressPercent.textContent = '0%';
+    }
+    if (progressETA) {
+        progressETA.textContent = 'Estimating time...';
+    }
+
+    // Remove retry button if it exists
+    const retryButton = document.getElementById('retryButton');
+    if (retryButton) {
+        retryButton.remove();
+    }
+
+    // Reset phase indicators
+    ['phase-1-indicator', 'phase-2-indicator'].forEach(id => {
+        const indicator = document.getElementById(id);
+        if (indicator) {
+            indicator.className = 'flex items-center gap-2 px-4 py-2 rounded-full text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 font-medium';
+        }
+    });
+}
+
 // New analysis buttons
 [newAnalysisBtn, homeBtn].forEach(btn => {
     if (btn) {
@@ -684,7 +982,7 @@ if (copyJsonBtn) {
             resultsSection.classList.add('hidden');
             uploadSection.classList.remove('hidden');
             uploadForm.classList.remove('hidden');
-            processingStatus.classList.add('hidden');
+            resetProcessingStatus();
             uploadForm.reset();
             fileName.classList.add('hidden');
         });

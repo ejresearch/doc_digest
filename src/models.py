@@ -1,151 +1,234 @@
-from typing import List, Literal, Optional
-from pydantic import BaseModel
+"""
+GRAFF Pydantic Models for Chapter Analysis
 
-# -------- System Metadata (backend header) --------
-class SystemMetadata(BaseModel):
-    chapter_id: Optional[str] = None
-    file_name: Optional[str] = None
-    author_or_editor: Optional[str] = None
-    version: Optional[str] = None
-    created_at: Optional[str] = None  # ISO-8601
-    source_text: Optional[str] = None
+This module defines the schema for the 2-phase GRAFF pipeline:
+- Phase 1: Chapter Comprehension
+- Phase 2: Proposition Extraction + Key Takeaway Synthesis
 
-# -------- Comprehension Pass --------
-class WhoItem(BaseModel):
-    entity: str
-    role_or_function: Optional[str] = ""
-    significance_in_chapter: Optional[str] = ""
-    evidence_pointer: Optional[str] = None
+Bloom Taxonomy Mapping:
+- Propositions (micro): remember, understand, apply, analyze
+- Key Takeaways (meso): analyze, evaluate
+- Create (macro): Reserved for future activity generation
+"""
 
-class WhatItem(BaseModel):
-    concept_or_topic: str
-    definition_or_description: Optional[str] = ""
-    importance: Optional[str] = ""
-    evidence_pointer: Optional[str] = None
+from typing import List, Optional, Literal
+from pydantic import BaseModel, Field
 
-class WhenBlock(BaseModel):
-    historical_or_cultural_context: Optional[str] = ""
-    chronological_sequence_within_course: Optional[str] = ""
-    moment_of_presentation_to_reader: Optional[str] = ""
+# ============================================================================
+# Bloom Level Type Definitions
+# ============================================================================
 
-class WhyBlock(BaseModel):
-    intellectual_value: Optional[str] = ""
-    knowledge_based_value: Optional[str] = ""
-    moral_or_philosophical_significance: Optional[str] = ""
+PropositionBloom = Literal["remember", "understand", "apply", "analyze"]
+"""
+Allowed Bloom levels for propositions (atomic facts).
+Propositions must NOT use 'evaluate' or 'create'.
+"""
 
-class HowBlock(BaseModel):
-    presentation_style: Optional[str] = ""
-    rhetorical_approach: Optional[str] = ""
-    recommended_student_strategy: Optional[str] = ""
+TakeawayBloom = Literal["analyze", "evaluate"]
+"""
+Allowed Bloom levels for key takeaways (synthesized insights).
+Takeaways represent higher-order cognition.
+"""
 
-class ComprehensionPass(BaseModel):
-    who: List[WhoItem]
-    what: List[WhatItem]
-    when: WhenBlock
-    why: WhyBlock
-    how: HowBlock
 
-# -------- Structural Outline --------
-class SubSubtopic(BaseModel):
-    title: str
-    details: Optional[str] = ""
-    visual_or_media_support: Optional[str] = ""
-
-class Subtopic(BaseModel):
-    subtopic_title: str
-    key_concepts: List[str] = []
-    supporting_examples: List[str] = []
-    student_discussion_prompts: List[str] = []
-    notes_on_instructional_sequence: Optional[str] = ""
-    sub_subtopics: List[SubSubtopic] = []
+# ============================================================================
+# Phase 1: Chapter Comprehension Models
+# ============================================================================
 
 class Section(BaseModel):
-    section_title: str
-    section_summary: Optional[str] = ""
-    pedagogical_purpose: Optional[str] = ""
-    rhetorical_mode: Optional[Literal["expository","narrative","analytical","reflective","procedural"]] = None
-    subtopics: List[Subtopic] = []
+    """
+    Represents a hierarchical section or subsection within the chapter.
 
-class StructuralOutline(BaseModel):
-    chapter_title: str
-    guiding_context_questions: List[str] = []
-    outline: List[Section]
+    Examples:
+    - unit_id="1.1", title="Introduction", level=1
+    - unit_id="1.2.3", title="Methods of Analysis", level=2, parent_unit_id="1.2"
+    """
+    unit_id: str = Field(..., description="Unique identifier for this section (e.g., '1.2', '3.4.1')")
+    title: str = Field(..., description="Section title or heading")
+    level: int = Field(..., description="Nesting depth (1=top-level section, 2=subsection, etc.)")
+    parent_unit_id: Optional[str] = Field(None, description="unit_id of parent section (null for top-level)")
+    start_location: Optional[str] = Field(None, description="Where section begins (e.g., 'p.5 ¶2')")
+    end_location: Optional[str] = Field(None, description="Where section ends (e.g., 'p.8 ¶4')")
 
-# -------- Propositional Extraction --------
+
+class Entity(BaseModel):
+    """
+    Key entity mentioned in the chapter (person, organization, concept, etc.).
+
+    Examples:
+    - name="Paramount Pictures", type="studio"
+    - name="vertical integration", type="concept"
+    - name="Adolph Zukor", type="person"
+    """
+    name: str = Field(..., description="Entity name")
+    type: str = Field(..., description="Entity type (e.g., 'concept', 'person', 'studio', 'event')")
+
+
+class Phase1Comprehension(BaseModel):
+    """
+    Output from Phase 1: Chapter structural analysis and comprehension.
+
+    Includes:
+    - Overall chapter summary
+    - Hierarchical section breakdown
+    - Key entities and concepts
+    - Important keywords
+    """
+    summary: str = Field(..., description="One-paragraph summary of the entire chapter")
+    sections: List[Section] = Field(..., description="Hierarchical breakdown of chapter sections")
+    key_entities: List[Entity] = Field(default_factory=list, description="Important entities mentioned")
+    keywords: List[str] = Field(default_factory=list, description="Domain-specific keywords and terms")
+
+
+# ============================================================================
+# Phase 2: Proposition & Takeaway Models
+# ============================================================================
+
 class Proposition(BaseModel):
-    id: Optional[str] = None
-    truth_type: Optional[Literal["descriptive","analytical","normative"]] = None
-    statement: str
-    evidence_from_text: Optional[str] = ""
-    implication_for_learning: Optional[str] = ""
-    connections_to_other_chapters: List[str] = []
-    potential_student_reflection_question: Optional[str] = ""
-    evidence_pointer: Optional[str] = None
+    """
+    An atomic fact extracted directly from the chapter text.
 
-class PropositionalExtraction(BaseModel):
-    definition: Optional[str] = None
-    guiding_prompts: List[str] = []
-    propositions: List[Proposition]
+    Characteristics:
+    - True/false statement
+    - Grounded in specific text location
+    - Cannot contain multiple ideas
+    - Smallest unit of instructional meaning
 
-# -------- Analytical Metadata (derived) --------
-class AnalyticalMetadata(BaseModel):
-    subject_domain: Optional[str] = None
-    curriculum_unit: Optional[str] = None
-    disciplinary_lens: Optional[str] = None
-    related_chapters: List[str] = []
-    grade_level_or_audience: Optional[str] = None
-    spiral_position: Optional[str] = None
+    Bloom Constraints:
+    - ALLOWED: remember, understand, apply, analyze
+    - NOT ALLOWED: evaluate, create
 
-# -------- Pedagogical Mapping --------
-class StudentActivity(BaseModel):
-    activity_type: Optional[str] = None
-    description: Optional[str] = None
-    location: Optional[str] = None
+    Example:
+    {
+      "proposition_id": "ch01_1.2_p001",
+      "chapter_id": "ch01",
+      "unit_id": "1.2",
+      "proposition_text": "Vertical integration refers to studio ownership of production, distribution, and exhibition.",
+      "bloom_level": "remember",
+      "bloom_verb": "define",
+      "evidence_location": "Section 1.2, paragraph 2",
+      "source_type": "definition",
+      "tags": ["vertical integration", "studios"]
+    }
+    """
+    proposition_id: str = Field(..., description="Unique identifier (e.g., 'ch01_1.2_p001')")
+    chapter_id: str = Field(..., description="Chapter this proposition belongs to")
+    unit_id: str = Field(..., description="Section/unit this proposition is from")
+    proposition_text: str = Field(..., description="The atomic fact statement")
+    bloom_level: PropositionBloom = Field(..., description="Cognitive level (remember/understand/apply/analyze)")
+    bloom_verb: str = Field(..., description="Action verb matching the Bloom level (e.g., 'define', 'explain', 'apply', 'compare')")
+    evidence_location: str = Field(..., description="Where in the text this fact appears (e.g., 'Section 1.2, paragraph 3')")
+    source_type: str = Field(..., description="How the fact was extracted (e.g., 'explicit', 'definition', 'paraphrased', 'inferred')")
+    tags: List[str] = Field(default_factory=list, description="Domain-specific tags for filtering and search")
 
-class AssessmentQuestion(BaseModel):
-    question: Optional[str] = None
-    question_type: Optional[str] = None
-    location: Optional[str] = None
 
-class ReviewSection(BaseModel):
-    content: Optional[str] = None
-    location: Optional[str] = None
+class KeyTakeaway(BaseModel):
+    """
+    A meaningful learning point that synthesizes several propositions.
 
-class VisualMediaReference(BaseModel):
-    reference: Optional[str] = None
-    description: Optional[str] = None
-    pedagogical_purpose: Optional[str] = None
+    Characteristics:
+    - One-sentence conceptual summary
+    - Derived, not extracted
+    - Represents significance, trend, relationship, or interpretation
+    - Usually tied to a section or theme
 
-class HistoricalExample(BaseModel):
-    example: Optional[str] = None
-    time_period: Optional[str] = None
-    still_relevant: Optional[bool] = None
+    Bloom Constraints:
+    - ALLOWED: analyze, evaluate
+    - Represents higher-order cognition
 
-class ContemporaryExample(BaseModel):
-    example: Optional[str] = None
-    current_as_of: Optional[str] = None
-    update_priority: Optional[Literal["low", "medium", "high"]] = None
+    Example:
+    {
+      "takeaway_id": "ch01_t001",
+      "chapter_id": "ch01",
+      "unit_id": "1.2",
+      "text": "Vertical integration allowed studios to dominate the film industry by controlling production, distribution, and exhibition.",
+      "proposition_ids": ["ch01_1.2_p001", "ch01_1.2_p002", "ch01_1.2_p003"],
+      "dominant_bloom_level": "analyze",
+      "tags": ["industry structure", "market control"]
+    }
+    """
+    takeaway_id: str = Field(..., description="Unique identifier (e.g., 'ch01_t001')")
+    chapter_id: str = Field(..., description="Chapter this takeaway belongs to")
+    unit_id: Optional[str] = Field(None, description="Primary section/unit (null if chapter-level)")
+    text: str = Field(..., description="One-sentence synthesis statement")
+    proposition_ids: List[str] = Field(..., description="List of proposition IDs this takeaway synthesizes")
+    dominant_bloom_level: Optional[TakeawayBloom] = Field(None, description="Primary cognitive level (analyze/evaluate)")
+    tags: List[str] = Field(default_factory=list, description="Thematic tags")
 
-class TemporalAnalysis(BaseModel):
-    historical_examples: List[HistoricalExample] = []
-    contemporary_examples: List[ContemporaryExample] = []
-    temporal_range: Optional[str] = None
+    def validate_proposition_ids(self) -> bool:
+        """Ensure takeaway references at least one proposition."""
+        return len(self.proposition_ids) > 0
 
-class PedagogicalMapping(BaseModel):
-    learning_objectives: List[str] = []
-    student_activities: List[StudentActivity] = []
-    assessment_questions: List[AssessmentQuestion] = []
-    chapter_summary: Optional[str] = None
-    review_sections: List[ReviewSection] = []
-    visual_media_references: List[VisualMediaReference] = []
-    temporal_analysis: Optional[TemporalAnalysis] = None
-    potential_discussion_questions: List[str] = []
 
-# -------- Master Document --------
+class Phase2Output(BaseModel):
+    """
+    Output from Phase 2: Comprehensive proposition extraction and synthesis.
+
+    Includes:
+    - All atomic facts extracted from the chapter (comprehensive, no artificial limit)
+    - Key takeaways synthesizing groups of related propositions
+    - Optional processing notes
+    """
+    propositions: List[Proposition] = Field(..., description="All extracted atomic facts (comprehensive extraction)")
+    key_takeaways: List[KeyTakeaway] = Field(..., description="Synthesized learning points")
+    notes: Optional[str] = Field(None, description="Optional notes about extraction process, distribution, etc.")
+
+
+# ============================================================================
+# Complete Chapter Analysis (Root Model)
+# ============================================================================
+
 class ChapterAnalysis(BaseModel):
-    system_metadata: Optional[SystemMetadata] = None
-    comprehension_pass: ComprehensionPass
-    structural_outline: StructuralOutline
-    propositional_extraction: PropositionalExtraction
-    analytical_metadata: Optional[AnalyticalMetadata] = None
-    pedagogical_mapping: Optional[PedagogicalMapping] = None
+    """
+    Complete analysis output for one chapter.
+
+    Combines Phase 1 (comprehension) and Phase 2 (extraction/synthesis).
+    This is the root model for the entire GRAFF pipeline.
+
+    Example structure:
+    {
+      "schema_version": "1.0",
+      "book_id": "film_industry_vol1",
+      "chapter_id": "ch01",
+      "chapter_title": "The Classical Hollywood Studio System",
+      "phase1": { ... },
+      "phase2": { ... }
+    }
+    """
+    schema_version: str = Field(default="1.0", description="GRAFF schema version")
+    book_id: str = Field(..., description="Identifier for the book/course this chapter belongs to")
+    chapter_id: str = Field(..., description="Unique chapter identifier")
+    chapter_title: str = Field(..., description="Chapter title")
+    phase1: Phase1Comprehension = Field(..., description="Phase 1: Structural comprehension output")
+    phase2: Phase2Output = Field(..., description="Phase 2: Proposition and takeaway extraction")
+
+    def get_proposition_count(self) -> int:
+        """Get total number of propositions extracted."""
+        return len(self.phase2.propositions)
+
+    def get_bloom_distribution(self) -> dict:
+        """
+        Get distribution of propositions by Bloom level.
+
+        Returns:
+            dict: {bloom_level: count}
+        """
+        distribution = {"remember": 0, "understand": 0, "apply": 0, "analyze": 0}
+        for prop in self.phase2.propositions:
+            distribution[prop.bloom_level] += 1
+        return distribution
+
+    def get_takeaway_bloom_distribution(self) -> dict:
+        """
+        Get distribution of key takeaways by Bloom level.
+
+        Returns:
+            dict: {bloom_level: count}
+        """
+        distribution = {"analyze": 0, "evaluate": 0, "none": 0}
+        for takeaway in self.phase2.key_takeaways:
+            if takeaway.dominant_bloom_level:
+                distribution[takeaway.dominant_bloom_level] += 1
+            else:
+                distribution["none"] += 1
+        return distribution
