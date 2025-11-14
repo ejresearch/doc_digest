@@ -399,12 +399,10 @@ function updateProgress(phase, message, percent) {
     // Map phase to user-friendly text and percentage
     const phaseMap = {
         'initialization': { label: 'Initializing', percent: 5 },
-        'phase-1': { label: 'Phase 1 of 5: Comprehension', percent: 20 },
-        'phase-2': { label: 'Phase 2 of 5: Structure', percent: 40 },
-        'phase-3': { label: 'Phase 3 of 5: Propositions', percent: 60 },
-        'phase-4': { label: 'Phase 4 of 5: Analytics', percent: 75 },
-        'phase-5': { label: 'Phase 5 of 5: Pedagogy', percent: 90 },
-        'validation': { label: 'Finalizing', percent: 95 },
+        'phase-1': { label: 'Phase 1 of 2: Structure Analysis', percent: 30 },
+        'phase-2': { label: 'Phase 2 of 2: Content Extraction', percent: 70 },
+        'validation': { label: 'Validating', percent: 90 },
+        'storage': { label: 'Saving', percent: 95 },
         'completed': { label: 'Complete!', percent: 100 },
         'error': { label: 'Error', percent: 0 }
     };
@@ -428,24 +426,27 @@ function updateProgress(phase, message, percent) {
         progressPercent.textContent = `${Math.round(targetPercent)}%`;
     }
 
-    // Update phase indicators
-    for (let i = 1; i <= 5; i++) {
+    // Update phase indicators (GRAFF has 2 phases)
+    for (let i = 1; i <= 2; i++) {
         const indicator = document.getElementById(`phase-${i}-indicator`);
         if (indicator) {
             if (phase === 'error') {
                 // Error state - show red for all phases
-                indicator.className = 'flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-red-500 text-white';
+                indicator.className = 'flex items-center gap-2 px-4 py-2 rounded-full text-sm bg-red-500 text-white font-medium';
             } else {
                 const phaseNum = phase.match(/phase-(\d)/)?.[1];
                 if (phaseNum && parseInt(phaseNum) === i) {
-                    // Current phase
-                    indicator.className = 'flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-blue-600 text-white animate-pulse';
+                    // Current phase - blue with pulse animation
+                    indicator.className = 'flex items-center gap-2 px-4 py-2 rounded-full text-sm bg-blue-600 text-white animate-pulse font-medium';
                 } else if (phaseNum && parseInt(phaseNum) > i) {
-                    // Completed phase
-                    indicator.className = 'flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-green-600 text-white';
+                    // Completed phase - green checkmark
+                    indicator.className = 'flex items-center gap-2 px-4 py-2 rounded-full text-sm bg-green-600 text-white font-medium';
+                } else if (phase === 'completed' || phase === 'validation' || phase === 'storage') {
+                    // All phases complete - green
+                    indicator.className = 'flex items-center gap-2 px-4 py-2 rounded-full text-sm bg-green-600 text-white font-medium';
                 } else {
-                    // Pending phase
-                    indicator.className = 'flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400';
+                    // Pending phase - gray
+                    indicator.className = 'flex items-center gap-2 px-4 py-2 rounded-full text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 font-medium';
                 }
             }
         }

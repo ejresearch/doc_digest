@@ -136,6 +136,36 @@ def _extract_section_text(full_text: str, section_title: str, next_section_title
     return full_text[start_idx:end_idx]
 
 
+def _enumerate_paragraphs(text: str, start_number: int = 1) -> str:
+    """
+    Add paragraph numbers to text for better LLM tracking.
+
+    Args:
+        text: Raw text to enumerate
+        start_number: Starting paragraph number (default 1)
+
+    Returns:
+        Text with [¶001], [¶002], etc. prefixed to each paragraph
+
+    Examples:
+        Input:  "First paragraph.\\n\\nSecond paragraph."
+        Output: "[¶001] First paragraph.\\n\\n[¶002] Second paragraph."
+    """
+    # Split by double newlines (paragraph breaks)
+    paragraphs = text.split('\n\n')
+
+    # Filter out empty paragraphs
+    paragraphs = [p.strip() for p in paragraphs if p.strip()]
+
+    # Add paragraph numbers
+    enumerated = []
+    for i, para in enumerate(paragraphs, start=start_number):
+        enumerated.append(f"[¶{i:03d}] {para}")
+
+    # Rejoin with double newlines
+    return '\n\n'.join(enumerated)
+
+
 def run_phase_2(text: str, chapter_id: str, phase1: Phase1Comprehension) -> Phase2Output:
     """
     GRAFF Phase 2: Comprehensive Proposition Extraction + Key Takeaway Synthesis.
@@ -177,24 +207,108 @@ def run_phase_2(text: str, chapter_id: str, phase1: Phase1Comprehension) -> Phas
             section_text = _extract_section_text(text, section.title, next_section_title)
             section_word_count = len(section_text.split())
 
-            # Calculate section-specific targets
-            min_props = max(3, int(section_word_count / 150))  # At least 3 propositions per section
-            max_props = max(5, int(section_word_count / 100))
+            logger.info(f"Processing section {section.unit_id} '{section.title}' ({section_word_count} words)")
 
-            logger.info(f"Processing section {section.unit_id} '{section.title}' ({section_word_count} words, target: {min_props}-{max_props} props)")
+            # CHUNKING STRATEGY: Split large sections to avoid timeouts
+            CHUNK_SIZE = 3000  # words per chunk
+            section_props = []
 
-            # Section-specific prompt
-            user_prompt = f"""Chapter ID: {chapter_id}
+            if section_word_count > CHUNK_SIZE:
+                # Split into chunks
+                words = section_text.split()
+                num_chunks = (section_word_count + CHUNK_SIZE - 1) // CHUNK_SIZE  # Ceiling division
+                logger.info(f"  → Splitting into {num_chunks} chunks ({CHUNK_SIZE} words each)")
+
+                for chunk_idx in range(num_chunks):
+                    start_idx = chunk_idx * CHUNK_SIZE
+                    end_idx = min((chunk_idx + 1) * CHUNK_SIZE, len(words))
+                    chunk_text = " ".join(words[start_idx:end_idx])
+                    chunk_word_count = end_idx - start_idx
+
+                    # Enumerate paragraphs for better tracking
+                    chunk_text_enumerated = _enumerate_paragraphs(chunk_text, start_number=1)
+
+                    # Calculate chunk-specific targets
+                    min_props = max(3, int(chunk_word_count / 150))
+                    max_props = max(5, int(chunk_word_count / 100))
+
+                    logger.info(f"  → Chunk {chunk_idx+1}/{num_chunks}: {chunk_word_count} words, target: {min_props}-{max_props} props")
+
+                    # Chunk-specific prompt
+                    user_prompt = f"""Chapter ID: {chapter_id}
+Section: {section.unit_id} - {section.title} (Chunk {chunk_idx+1}/{num_chunks})
+
+**TASK: Extract ALL facts from THIS TEXT CHUNK**
+
+**IMPORTANT: Each paragraph is numbered [¶001], [¶002], etc. Use these paragraph numbers in your evidence_location field.**
+
+Text ({chunk_word_count:,} words):
+{chunk_text_enumerated}
+
+**QUANTITATIVE REQUIREMENT:**
+Extract {min_props}-{max_props} propositions from this chunk.
+Extract EVERY fact - definitions, names, dates, descriptions, examples, comparisons, etc.
+
+Respond with a JSON object containing ONLY a "propositions" array.
+Each proposition must have:
+- proposition_id: "{chapter_id}_{section.unit_id}_pXXX" (sequential numbering across chunks)
+- chapter_id: "{chapter_id}"
+- unit_id: "{section.unit_id}"
+- evidence_location: "¶XXX" (e.g., "¶001", "¶015") - use the paragraph number where you found this fact
+- All other required fields
+
+Do NOT include key_takeaways (those will be generated separately)."""
+
+                    # Simplified schema for chunk extraction
+                    chunk_schema = {
+                        "type": "object",
+                        "properties": {
+                            "propositions": {
+                                "type": "array",
+                                "items": Proposition.model_json_schema()
+                            }
+                        },
+                        "required": ["propositions"]
+                    }
+
+                    # Extract propositions for this chunk
+                    response_dict = call_openai_structured(
+                        system_prompt=system_prompt,
+                        user_prompt=user_prompt,
+                        temperature=PHASE_2_TEMPERATURE,
+                        json_schema=chunk_schema,
+                        max_tokens=8000
+                    )
+
+                    # Validate and collect propositions
+                    chunk_props = [Proposition.model_validate(p) for p in response_dict.get("propositions", [])]
+                    section_props.extend(chunk_props)
+
+                    logger.info(f"  → Chunk {chunk_idx+1}: extracted {len(chunk_props)} propositions")
+
+            else:
+                # Process entire section in one call
+                min_props = max(3, int(section_word_count / 150))
+                max_props = max(5, int(section_word_count / 100))
+
+                logger.info(f"  → Processing as single chunk (target: {min_props}-{max_props} props)")
+
+                # Enumerate paragraphs for better tracking
+                section_text_enumerated = _enumerate_paragraphs(section_text, start_number=1)
+
+                # Section-specific prompt
+                user_prompt = f"""Chapter ID: {chapter_id}
 Section: {section.unit_id} - {section.title}
 
-**TASK: Extract ALL facts from THIS SECTION ONLY**
+**TASK: Extract ALL facts from THIS SECTION**
+
+**IMPORTANT: Each paragraph is numbered [¶001], [¶002], etc. Use these paragraph numbers in your evidence_location field.**
 
 Section Text ({section_word_count:,} words):
-{section_text}
+{section_text_enumerated}
 
-**QUANTITATIVE REQUIREMENT FOR THIS SECTION:**
-This section has {section_word_count:,} words.
-You MUST extract at least {min_props}-{max_props} propositions from this section.
+**QUANTITATIVE REQUIREMENT:**
+Extract {min_props}-{max_props} propositions from this section.
 Extract EVERY fact - definitions, names, dates, descriptions, examples, comparisons, etc.
 
 Respond with a JSON object containing ONLY a "propositions" array.
@@ -202,103 +316,142 @@ Each proposition must have:
 - proposition_id: "{chapter_id}_{section.unit_id}_pXXX" (e.g., "1_1.2_p001")
 - chapter_id: "{chapter_id}"
 - unit_id: "{section.unit_id}"
+- evidence_location: "¶XXX" (e.g., "¶001", "¶015") - use the paragraph number where you found this fact
 - All other required fields
 
 Do NOT include key_takeaways (those will be generated separately)."""
 
-            # Simplified schema for section extraction (propositions only)
-            section_schema = {
-                "type": "object",
-                "properties": {
-                    "propositions": {
-                        "type": "array",
-                        "items": Proposition.model_json_schema()
-                    }
-                },
-                "required": ["propositions"]
-            }
+                # Simplified schema for section extraction (propositions only)
+                section_schema = {
+                    "type": "object",
+                    "properties": {
+                        "propositions": {
+                            "type": "array",
+                            "items": Proposition.model_json_schema()
+                        }
+                    },
+                    "required": ["propositions"]
+                }
 
-            # Extract propositions for this section
-            response_dict = call_openai_structured(
-                system_prompt=system_prompt,
-                user_prompt=user_prompt,
-                temperature=PHASE_2_TEMPERATURE,
-                json_schema=section_schema,
-                max_tokens=8000
-            )
+                # Extract propositions for this section
+                response_dict = call_openai_structured(
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    temperature=PHASE_2_TEMPERATURE,
+                    json_schema=section_schema,
+                    max_tokens=8000
+                )
 
-            # Validate and collect propositions
-            section_props = [Proposition.model_validate(p) for p in response_dict.get("propositions", [])]
+                # Validate and collect propositions
+                section_props = [Proposition.model_validate(p) for p in response_dict.get("propositions", [])]
+
+            # Renumber propositions to ensure uniqueness across chunks
+            # (Each chunk generates IDs starting from p001, so we need to fix them)
+            for idx, prop in enumerate(section_props, start=1):
+                # Generate new unique ID for this section
+                new_id = f"{chapter_id}_{section.unit_id}_p{idx:03d}"
+                prop.proposition_id = new_id
+                logger.debug(f"Renumbered proposition to {new_id}")
+
+            # Add all section propositions to total
             all_propositions.extend(section_props)
-
-            logger.info(f"Section {section.unit_id}: extracted {len(section_props)} propositions")
+            logger.info(f"Section {section.unit_id}: extracted {len(section_props)} propositions total")
 
         logger.info(f"Total propositions extracted: {len(all_propositions)}")
 
-        # STEP 2: Synthesize takeaways across all propositions
+        # STEP 2: Synthesize takeaways section-by-section
         logger.info("Synthesizing key takeaways...")
+        all_takeaways = []
 
-        # Create summary of all propositions for takeaway synthesis
-        props_summary = "\n".join([
-            f"- [{p.proposition_id}] {p.proposition_text} (Bloom: {p.bloom_level}, Unit: {p.unit_id})"
-            for p in all_propositions
-        ])
+        # Group propositions by section
+        props_by_section = {}
+        for prop in all_propositions:
+            if prop.unit_id not in props_by_section:
+                props_by_section[prop.unit_id] = []
+            props_by_section[prop.unit_id].append(prop)
 
-        takeaway_prompt = f"""Chapter ID: {chapter_id}
+        # Generate takeaways for each section
+        for section in phase1.sections:
+            section_props = props_by_section.get(section.unit_id, [])
+            if not section_props:
+                logger.warning(f"No propositions found for section {section.unit_id}, skipping takeaway generation")
+                continue
 
-**TASK: Synthesize key takeaways from the propositions below**
+            # Calculate target: roughly 1 takeaway per 3-5 propositions
+            num_props = len(section_props)
+            min_takeaways = max(2, num_props // 5)
+            max_takeaways = max(3, num_props // 3)
 
-Phase 1 Sections:
-{phase1.model_dump_json(indent=2)}
+            logger.info(f"Generating {min_takeaways}-{max_takeaways} takeaways for section {section.unit_id} ({num_props} propositions)")
 
-All Extracted Propositions ({len(all_propositions)} total):
+            # Create proposition summary for this section
+            props_summary = "\n".join([
+                f"- [{p.proposition_id}] {p.proposition_text} (Bloom: {p.bloom_level})"
+                for p in section_props
+            ])
+
+            takeaway_prompt = f"""Chapter ID: {chapter_id}
+Section: {section.unit_id} - {section.title}
+
+**TASK: Synthesize key takeaways from these section propositions**
+
+Section Propositions ({num_props} total):
 {props_summary}
 
 **REQUIREMENTS:**
-- Generate 8-20 key takeaways that synthesize groups of related propositions
-- Use multi-pass approach: section-level → cross-section patterns → chapter-level insights
-- Each takeaway must link to 2+ proposition IDs
+- Generate {min_takeaways}-{max_takeaways} key takeaways for this section
+- Each takeaway synthesizes 2-5 related propositions
+- Each takeaway is ONE complete sentence
 - Use Bloom levels: analyze or evaluate
+- Identify patterns, relationships, causes, comparisons, significance
 
 Respond with a JSON object containing ONLY a "key_takeaways" array.
 Each takeaway must have:
-- takeaway_id: "{chapter_id}_tXXX"
+- takeaway_id: "{chapter_id}_tXXX" (sequential across all sections)
 - chapter_id: "{chapter_id}"
-- unit_id: primary section (or null for chapter-level)
+- unit_id: "{section.unit_id}"
 - text: one-sentence synthesis
-- proposition_ids: array of related proposition IDs
+- proposition_ids: array of related proposition IDs (2-5 IDs)
 - dominant_bloom_level: "analyze" or "evaluate"
-- tags: thematic tags"""
+- tags: 2-4 thematic tags"""
 
-        takeaway_schema = {
-            "type": "object",
-            "properties": {
-                "key_takeaways": {
-                    "type": "array",
-                    "items": KeyTakeaway.model_json_schema()
-                }
-            },
-            "required": ["key_takeaways"]
-        }
+            takeaway_schema = {
+                "type": "object",
+                "properties": {
+                    "key_takeaways": {
+                        "type": "array",
+                        "items": KeyTakeaway.model_json_schema()
+                    }
+                },
+                "required": ["key_takeaways"]
+            }
 
-        # Extract takeaways
-        takeaway_response = call_openai_structured(
-            system_prompt=system_prompt,
-            user_prompt=takeaway_prompt,
-            temperature=PHASE_2_TEMPERATURE,
-            json_schema=takeaway_schema,
-            max_tokens=8000
-        )
+            # Generate takeaways for this section
+            takeaway_response = call_openai_structured(
+                system_prompt=system_prompt,
+                user_prompt=takeaway_prompt,
+                temperature=PHASE_2_TEMPERATURE,
+                json_schema=takeaway_schema,
+                max_tokens=8000
+            )
 
-        # Validate takeaways
-        takeaways = [KeyTakeaway.model_validate(t) for t in takeaway_response.get("key_takeaways", [])]
+            # Validate and collect takeaways
+            section_takeaways = [KeyTakeaway.model_validate(t) for t in takeaway_response.get("key_takeaways", [])]
+            all_takeaways.extend(section_takeaways)
 
-        logger.info(f"Synthesized {len(takeaways)} key takeaways")
+            logger.info(f"  → Section {section.unit_id}: generated {len(section_takeaways)} takeaways")
+
+        # Renumber takeaways to ensure uniqueness
+        for idx, takeaway in enumerate(all_takeaways, start=1):
+            new_id = f"{chapter_id}_t{idx:03d}"
+            takeaway.takeaway_id = new_id
+
+        logger.info(f"Synthesized {len(all_takeaways)} key takeaways total")
 
         # Assemble Phase 2 output
         phase2 = Phase2Output(
             propositions=all_propositions,
-            key_takeaways=takeaways
+            key_takeaways=all_takeaways
         )
 
         # Log extraction statistics
