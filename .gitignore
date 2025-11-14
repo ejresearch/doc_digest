@@ -137,3 +137,6 @@ Thumbs.db
 data/
 *.log
 *.db
+
+# Database backups (kept locally only)
+data/db_backups/

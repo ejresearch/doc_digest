@@ -166,7 +166,7 @@ def _enumerate_paragraphs(text: str, start_number: int = 1) -> str:
     return '\n\n'.join(enumerated)
 
 
-def run_phase_2(text: str, chapter_id: str, phase1: Phase1Comprehension) -> Phase2Output:
+def run_phase_2(text: str, chapter_id: str, phase1: Phase1Comprehension, progress_callback=None) -> Phase2Output:
     """
     GRAFF Phase 2: Comprehensive Proposition Extraction + Key Takeaway Synthesis.
 
@@ -179,6 +179,7 @@ def run_phase_2(text: str, chapter_id: str, phase1: Phase1Comprehension) -> Phas
         text: The chapter text to analyze
         chapter_id: Chapter identifier for proposition IDs
         phase1: Phase 1 output (used for section unit_ids)
+        progress_callback: Optional callback(phase, message) for progress updates
 
     Returns:
         Phase2Output: Validated Pydantic model with propositions and takeaways
@@ -189,6 +190,11 @@ def run_phase_2(text: str, chapter_id: str, phase1: Phase1Comprehension) -> Phas
     """
     logger.info(f"Phase 2 starting: {chapter_id} (section-by-section extraction)")
 
+    def notify(message: str):
+        """Send progress update."""
+        if progress_callback:
+            progress_callback("phase-2", message)
+
     try:
         # Load system prompt from file
         system_prompt = _load_prompt(PHASE_2_PROMPT_PATH)
@@ -198,6 +204,7 @@ def run_phase_2(text: str, chapter_id: str, phase1: Phase1Comprehension) -> Phas
 
         # STEP 1: Extract propositions section-by-section
         logger.info(f"Extracting propositions from {len(phase1.sections)} sections")
+        notify(f"Extracting from {len(phase1.sections)} sections...")
 
         for i, section in enumerate(phase1.sections):
             # Get next section title for text boundary
@@ -208,6 +215,7 @@ def run_phase_2(text: str, chapter_id: str, phase1: Phase1Comprehension) -> Phas
             section_word_count = len(section_text.split())
 
             logger.info(f"Processing section {section.unit_id} '{section.title}' ({section_word_count} words)")
+            notify(f"📖 Section {i+1}/{len(phase1.sections)}: {section.title} ({section_word_count:,} words)")
 
             # CHUNKING STRATEGY: Split large sections to avoid timeouts
             CHUNK_SIZE = 3000  # words per chunk
@@ -218,6 +226,7 @@ def run_phase_2(text: str, chapter_id: str, phase1: Phase1Comprehension) -> Phas
                 words = section_text.split()
                 num_chunks = (section_word_count + CHUNK_SIZE - 1) // CHUNK_SIZE  # Ceiling division
                 logger.info(f"  → Splitting into {num_chunks} chunks ({CHUNK_SIZE} words each)")
+                notify(f"  → Processing {num_chunks} chunks...")
 
                 for chunk_idx in range(num_chunks):
                     start_idx = chunk_idx * CHUNK_SIZE
@@ -233,6 +242,7 @@ def run_phase_2(text: str, chapter_id: str, phase1: Phase1Comprehension) -> Phas
                     max_props = max(5, int(chunk_word_count / 100))
 
                     logger.info(f"  → Chunk {chunk_idx+1}/{num_chunks}: {chunk_word_count} words, target: {min_props}-{max_props} props")
+                    notify(f"  ⚙️ Chunk {chunk_idx+1}/{num_chunks}: extracting from {chunk_word_count:,} words (target: {min_props}-{max_props})...")
 
                     # Chunk-specific prompt
                     user_prompt = f"""Chapter ID: {chapter_id}
@@ -285,6 +295,8 @@ Do NOT include key_takeaways (those will be generated separately)."""
                     section_props.extend(chunk_props)
 
                     logger.info(f"  → Chunk {chunk_idx+1}: extracted {len(chunk_props)} propositions")
+                    running_total = len(all_propositions) + len(section_props)
+                    notify(f"  ✓ Chunk {chunk_idx+1}/{num_chunks}: {len(chunk_props)} props | Running total: {running_total}")
 
             else:
                 # Process entire section in one call
@@ -357,10 +369,16 @@ Do NOT include key_takeaways (those will be generated separately)."""
             all_propositions.extend(section_props)
             logger.info(f"Section {section.unit_id}: extracted {len(section_props)} propositions total")
 
+            # Calculate progress percentage
+            progress_pct = int(((i + 1) / len(phase1.sections)) * 100)
+            notify(f"✅ Section {i+1}/{len(phase1.sections)} complete: {len(section_props)} props | Total: {len(all_propositions)} | {progress_pct}% done")
+
         logger.info(f"Total propositions extracted: {len(all_propositions)}")
+        notify(f"🎯 Extracted {len(all_propositions)} total propositions")
 
         # STEP 2: Synthesize takeaways section-by-section
         logger.info("Synthesizing key takeaways...")
+        notify("🔗 Synthesizing key takeaways...")
         all_takeaways = []
 
         # Group propositions by section
@@ -383,6 +401,8 @@ Do NOT include key_takeaways (those will be generated separately)."""
             max_takeaways = max(3, num_props // 3)
 
             logger.info(f"Generating {min_takeaways}-{max_takeaways} takeaways for section {section.unit_id} ({num_props} propositions)")
+            section_idx = phase1.sections.index(section) + 1
+            notify(f"  🔗 Synthesizing section {section_idx}/{len(phase1.sections)}: {section.title} ({num_props} props → {min_takeaways}-{max_takeaways} takeaways)...")
 
             # Create proposition summary for this section
             props_summary = "\n".join([
@@ -440,6 +460,7 @@ Each takeaway must have:
             all_takeaways.extend(section_takeaways)
 
             logger.info(f"  → Section {section.unit_id}: generated {len(section_takeaways)} takeaways")
+            notify(f"  ✓ Section {section_idx}: {len(section_takeaways)} takeaways | Total: {len(all_takeaways)}")
 
         # Renumber takeaways to ensure uniqueness
         for idx, takeaway in enumerate(all_takeaways, start=1):
@@ -447,6 +468,7 @@ Each takeaway must have:
             takeaway.takeaway_id = new_id
 
         logger.info(f"Synthesized {len(all_takeaways)} key takeaways total")
+        notify(f"✨ Synthesis complete: {len(all_takeaways)} takeaways from {len(all_propositions)} propositions")
 
         # Assemble Phase 2 output
         phase2 = Phase2Output(

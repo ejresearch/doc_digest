@@ -1,5 +1,7 @@
 // State
 let currentResults = null;
+let logViewerOpen = false;
+let logEntries = [];
 
 // Theme handling
 const themeToggle = document.getElementById('themeToggle');
@@ -22,6 +24,87 @@ if (themeToggle) {
             setTheme('dark');
         }
     });
+}
+
+// Real-time Log Viewer Functions
+function toggleLogViewer() {
+    logViewerOpen = !logViewerOpen;
+    const logViewer = document.getElementById('logViewer');
+    const logChevron = document.getElementById('logChevron');
+
+    if (logViewerOpen) {
+        logViewer.classList.remove('hidden');
+        logChevron.classList.add('rotate-180');
+    } else {
+        logViewer.classList.add('hidden');
+        logChevron.classList.remove('rotate-180');
+    }
+}
+
+function addLogEntry(message, phase) {
+    const logContent = document.getElementById('logContent');
+    const logCount = document.getElementById('logCount');
+
+    if (!logContent) return;
+
+    // Determine log color based on content
+    let color = 'text-gray-300';
+    if (message.includes('✅') || message.includes('✓')) {
+        color = 'text-green-400';
+    } else if (message.includes('📖')) {
+        color = 'text-blue-400';
+    } else if (message.includes('⚙️')) {
+        color = 'text-yellow-400';
+    } else if (message.includes('🔗') || message.includes('✨')) {
+        color = 'text-purple-400';
+    } else if (message.includes('🎯')) {
+        color = 'text-cyan-400';
+    }
+
+    // Add timestamp
+    const timestamp = new Date().toLocaleTimeString();
+
+    // Create log entry
+    const entry = document.createElement('div');
+    entry.className = `${color} leading-relaxed`;
+    entry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> ${escapeHtml(message)}`;
+
+    logContent.appendChild(entry);
+    logEntries.push(message);
+
+    // Update count
+    if (logCount) {
+        logCount.textContent = logEntries.length;
+    }
+
+    // Auto-scroll to bottom
+    logContent.scrollTop = logContent.scrollHeight;
+
+    // Auto-open on first log entry
+    if (logEntries.length === 1 && !logViewerOpen) {
+        toggleLogViewer();
+    }
+}
+
+function clearLogs() {
+    const logContent = document.getElementById('logContent');
+    const logCount = document.getElementById('logCount');
+
+    if (logContent) logContent.innerHTML = '';
+    if (logCount) logCount.textContent = '0';
+    logEntries = [];
+    logViewerOpen = false;
+
+    const logViewer = document.getElementById('logViewer');
+    const logChevron = document.getElementById('logChevron');
+    if (logViewer) logViewer.classList.add('hidden');
+    if (logChevron) logChevron.classList.remove('rotate-180');
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // DOM Elements
@@ -178,6 +261,9 @@ uploadForm.addEventListener('submit', async (e) => {
     uploadForm.classList.add('hidden');
     processingStatus.classList.remove('hidden');
 
+    // Clear previous logs
+    clearLogs();
+
     // Reset progress UI
     updateProgress('initialization', 'Starting analysis...', 0);
 
@@ -247,6 +333,9 @@ uploadForm.addEventListener('submit', async (e) => {
 
                 // Update UI with real progress
                 updateProgress(update.phase, update.message);
+
+                // Add to log viewer
+                addLogEntry(update.message, update.phase);
 
                 // Check if completed
                 if (update.status === 'completed') {
@@ -396,11 +485,11 @@ function updateProgress(phase, message, percent) {
     const progressPercent = document.getElementById('progressPercent');
     const progressETA = document.getElementById('progressETA');
 
-    // Map phase to user-friendly text and percentage
+    // Map phase to user-friendly text and base percentage
     const phaseMap = {
         'initialization': { label: 'Initializing', percent: 5 },
         'phase-1': { label: 'Phase 1 of 2: Structure Analysis', percent: 30 },
-        'phase-2': { label: 'Phase 2 of 2: Content Extraction', percent: 70 },
+        'phase-2': { label: 'Phase 2 of 2: Content Extraction', percent: 70 },  // fallback
         'validation': { label: 'Validating', percent: 90 },
         'storage': { label: 'Saving', percent: 95 },
         'completed': { label: 'Complete!', percent: 100 },
@@ -417,8 +506,20 @@ function updateProgress(phase, message, percent) {
         progressMessage.textContent = message;
     }
 
+    // Calculate actual progress percentage
+    let targetPercent = percent !== undefined ? percent : phaseInfo.percent;
+
+    // For phase-2, parse actual progress from message (e.g., "6% done", "13% done")
+    if (phase === 'phase-2' && message) {
+        const progressMatch = message.match(/(\d+)% done/);
+        if (progressMatch) {
+            const phase2Progress = parseInt(progressMatch[1]);
+            // Map phase-2 progress (0-100%) to overall progress (30-90%)
+            targetPercent = 30 + (phase2Progress * 0.6);
+        }
+    }
+
     // Update progress bar
-    const targetPercent = percent !== undefined ? percent : phaseInfo.percent;
     if (progressBar) {
         progressBar.style.width = `${targetPercent}%`;
     }
@@ -935,6 +1036,9 @@ function resetProcessingStatus() {
     // Hide processing status
     processingStatus.classList.add('hidden');
 
+    // Clear logs
+    clearLogs();
+
     // Reset progress elements
     const progressPhase = document.getElementById('progressPhase');
     const progressMessage = document.getElementById('progressMessage');
@@ -986,6 +1090,9 @@ function resetProcessingStatus() {
             resetProcessingStatus();
             uploadForm.reset();
             fileName.classList.add('hidden');
+
+            // Refresh the chapter list to show any new chapters
+            loadExistingChapters();
         });
     }
 });

@@ -104,7 +104,7 @@ def digest_chapter_graff(
         # Phase 2: Proposition Extraction + Synthesis
         notify("phase-2", "Extracting atomic facts and synthesizing takeaways...")
         try:
-            phase2 = run_phase_2(text, chapter_id, phase1)
+            phase2 = run_phase_2(text, chapter_id, phase1, progress_callback=notify)
 
             # FIX: Correct chapter_id in all propositions and takeaways
             # (LLM sometimes uses example chapter_id like "ch01" instead of actual chapter_id)

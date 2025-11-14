@@ -86,11 +86,10 @@ CREATE INDEX IF NOT EXISTS idx_propositions_unit_id ON propositions(unit_id);
 CREATE INDEX IF NOT EXISTS idx_propositions_bloom_level ON propositions(bloom_level);
 
 -- Full-text search on proposition text
+-- Using standalone FTS5 (not external content) to avoid cascade delete issues
 CREATE VIRTUAL TABLE IF NOT EXISTS propositions_fts USING fts5(
   proposition_id UNINDEXED,
-  proposition_text,
-  content=propositions,
-  content_rowid=rowid
+  proposition_text
 );
 
 -- Triggers to keep FTS index in sync
@@ -104,9 +103,10 @@ CREATE TRIGGER IF NOT EXISTS propositions_ad AFTER DELETE ON propositions BEGIN
 END;
 
 CREATE TRIGGER IF NOT EXISTS propositions_au AFTER UPDATE ON propositions BEGIN
-  DELETE FROM propositions_fts WHERE rowid = old.rowid;
-  INSERT INTO propositions_fts(rowid, proposition_id, proposition_text)
-  VALUES (new.rowid, new.id, new.proposition_text);
+  UPDATE propositions_fts
+  SET proposition_text = new.proposition_text,
+      proposition_id = new.id
+  WHERE rowid = old.rowid;
 END;
 
 -- ============================================================================

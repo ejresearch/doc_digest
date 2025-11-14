@@ -138,6 +138,22 @@
                                 <span>Phase 2: Extraction</span>
                             </div>
                         </div>
+
+                        <!-- Real-time Log Viewer -->
+                        <div class="mt-6">
+                            <button id="toggleLogs" onclick="toggleLogViewer()" class="w-full flex items-center justify-between px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors">
+                                <span class="flex items-center gap-2">
+                                    <svg id="logChevron" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                    <span>Detailed Extraction Log</span>
+                                </span>
+                                <span id="logCount" class="text-xs bg-blue-600 text-white px-2 py-1 rounded-full">0</span>
+                            </button>
+                            <div id="logViewer" class="hidden mt-2 bg-gray-900 dark:bg-gray-950 rounded-lg p-4 max-h-96 overflow-y-auto font-mono text-xs">
+                                <div id="logContent" class="space-y-1"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

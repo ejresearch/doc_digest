@@ -7,6 +7,7 @@ Handles all database operations for storing and retrieving chapter analysis resu
 import sqlite3
 import os
 import logging
+import shutil
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from datetime import datetime
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 # Database file path
 DB_PATH = Path(__file__).parent.parent.parent / "graff.db"
 SCHEMA_PATH = Path(__file__).parent / "schema.sql"
+BACKUP_DIR = Path(__file__).parent.parent.parent / "data" / "db_backups"
 
 
 def get_connection() -> sqlite3.Connection:
@@ -52,6 +54,79 @@ def init_database() -> None:
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}")
         raise
+    finally:
+        conn.close()
+
+
+def backup_database() -> Optional[Path]:
+    """
+    Create a timestamped backup of the database.
+
+    Returns:
+        Path to backup file, or None if backup failed
+    """
+    if not DB_PATH.exists():
+        logger.warning("No database to backup")
+        return None
+
+    try:
+        # Create backup directory if it doesn't exist
+        BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+
+        # Create timestamped backup filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_path = BACKUP_DIR / f"graff_backup_{timestamp}.db"
+
+        # Copy database file
+        shutil.copy2(DB_PATH, backup_path)
+        logger.info(f"Database backed up to: {backup_path}")
+
+        return backup_path
+    except Exception as e:
+        logger.error(f"Failed to backup database: {e}")
+        return None
+
+
+def repair_database_triggers() -> bool:
+    """
+    Repair corrupt database triggers by dropping and recreating them from schema.
+    Does NOT delete any data - only fixes triggers.
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    if not SCHEMA_PATH.exists():
+        logger.error(f"Schema file not found: {SCHEMA_PATH}")
+        return False
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # Drop all existing triggers
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='trigger'")
+        triggers = cursor.fetchall()
+        for trigger in triggers:
+            trigger_name = trigger[0]
+            cursor.execute(f"DROP TRIGGER IF EXISTS {trigger_name}")
+            logger.info(f"Dropped trigger: {trigger_name}")
+
+        # Extract and recreate only triggers from schema
+        with open(SCHEMA_PATH, 'r') as f:
+            schema_sql = f.read()
+
+        # Split schema and execute only CREATE TRIGGER statements
+        for statement in schema_sql.split(';'):
+            if 'CREATE TRIGGER' in statement:
+                cursor.execute(statement)
+                logger.info(f"Recreated trigger from schema")
+
+        conn.commit()
+        logger.info("Database triggers repaired successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to repair triggers: {e}")
+        return False
     finally:
         conn.close()
 
@@ -108,6 +183,10 @@ def save_chapter_analysis(chapter: ChapterAnalysis) -> bool:
 
         if existing:
             logger.warning(f"Chapter {chapter.chapter_id} already exists, deleting old version")
+            # Create backup before deleting
+            backup_path = backup_database()
+            if backup_path:
+                logger.info(f"Backup created before overwrite: {backup_path}")
             delete_chapter(chapter.chapter_id, conn)
 
         # Insert chapter metadata

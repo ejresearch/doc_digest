@@ -10,7 +10,9 @@ from .connection import (
     save_chapter_analysis,
     load_chapter_analysis,
     list_chapters,
-    delete_chapter
+    delete_chapter,
+    backup_database,
+    repair_database_triggers
 )
 
 __all__ = [
@@ -19,5 +21,7 @@ __all__ = [
     'save_chapter_analysis',
     'load_chapter_analysis',
     'list_chapters',
-    'delete_chapter'
+    'delete_chapter',
+    'backup_database',
+    'repair_database_triggers'
 ]
