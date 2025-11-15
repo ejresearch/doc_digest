@@ -71,7 +71,14 @@ async def stream_progress(job_id: str):
 
 @app.on_event("startup")
 async def startup_event():
+    import os
     logger.info("Doc Digester API starting up")
+    # Environment diagnostics
+    logger.info(f"ENV CHECK - OPENAI_API_KEY: {'SET' if os.getenv('OPENAI_API_KEY') else 'NOT SET'}")
+    logger.info(f"ENV CHECK - OPENAI_MODEL: {os.getenv('OPENAI_MODEL', 'NOT SET')}")
+    logger.info(f"ENV CHECK - USE_ACTUAL_LLM: {os.getenv('USE_ACTUAL_LLM', 'NOT SET')}")
+    if os.getenv('OPENAI_API_KEY'):
+        logger.info(f"ENV CHECK - API Key length: {len(os.getenv('OPENAI_API_KEY'))} chars")
 
 @app.on_event("shutdown")
 async def shutdown_event():
