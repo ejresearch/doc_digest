@@ -14,7 +14,7 @@ import logging
 
 logger = get_logger(__name__)
 
-# Load environment variables
+# Load environment variables from .env file (optional - Render uses actual env vars)
 load_dotenv()
 
 # Configuration from environment
@@ -26,10 +26,17 @@ OPENAI_MAX_RETRIES = int(os.getenv("OPENAI_MAX_RETRIES", "5"))
 OPENAI_RETRY_MIN_WAIT = int(os.getenv("OPENAI_RETRY_MIN_WAIT", "4"))
 OPENAI_RETRY_MAX_WAIT = int(os.getenv("OPENAI_RETRY_MAX_WAIT", "10"))
 
+# Debug logging for environment variables (helpful for deployment troubleshooting)
+logger.info(f"Environment check - OPENAI_API_KEY present: {bool(OPENAI_API_KEY)}")
+logger.info(f"Environment check - OPENAI_MODEL: {OPENAI_MODEL}")
+logger.info(f"Environment check - USE_ACTUAL_LLM: {os.getenv('USE_ACTUAL_LLM', 'not set')}")
+if OPENAI_API_KEY:
+    logger.info(f"API key starts with: {OPENAI_API_KEY[:10]}...")
+
 # Validate API key
 if not OPENAI_API_KEY:
     logger.warning("OPENAI_API_KEY not found in environment. LLM calls will fail.")
-    logger.warning("Create a .env file based on .env.example and add your API key.")
+    logger.warning("Set OPENAI_API_KEY as an environment variable or in .env file.")
 
 # Initialize OpenAI client
 try:
