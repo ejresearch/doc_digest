@@ -9,10 +9,12 @@ services:
     healthCheckPath: /health
     envVars:
       - key: OPENAI_API_KEY
-        sync: false
-      - key: USE_ACTUAL_LLM
-        value: "true"
+        sync: false  # Set this in Render Dashboard
       - key: OPENAI_MODEL
-        value: "gpt-4o"
+        sync: false  # Set this in Render Dashboard
+      - key: USE_ACTUAL_LLM
+        sync: false  # Set this in Render Dashboard
       - key: LOG_LEVEL
         value: "INFO"
+      - key: OPENAI_TIMEOUT
+        value: "600"  # Longer timeout for large chapters
