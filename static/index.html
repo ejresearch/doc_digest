@@ -49,6 +49,130 @@
         </div>
     </header>
 
+    <!-- Welcome Modal -->
+    <div id="welcomeModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700 animate-fade-in">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 p-8 rounded-t-2xl">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg">
+                            <span class="text-3xl font-bold bg-gradient-to-br from-blue-600 to-purple-600 bg-clip-text text-transparent">G</span>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-white">Welcome to GRAFF</h2>
+                            <p class="text-blue-100 text-sm">Educational Chapter Analysis System</p>
+                        </div>
+                    </div>
+                    <button id="closeModal" class="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="p-6 space-y-6">
+                <!-- What is GRAFF -->
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3">
+                        What is GRAFF?
+                    </h3>
+                    <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                        GRAFF is an AI-powered system that transforms educational textbook chapters into structured, searchable knowledge.
+                        It extracts <strong>every atomic fact</strong> from your content and organizes it for optimal learning.
+                    </p>
+                </div>
+
+                <!-- How it Works -->
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3">
+                        2-Phase Analysis Pipeline
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="flex gap-3 p-4 bg-blue-50 dark:bg-gray-700 rounded-lg border border-blue-200 dark:border-gray-600">
+                            <div class="flex-shrink-0 w-8 h-8 bg-blue-600 dark:bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">1</div>
+                            <div>
+                                <p class="font-semibold text-gray-900 dark:text-white">Structure Analysis</p>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Identifies chapter sections, entities, keywords, and creates a comprehensive summary</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 p-4 bg-purple-50 dark:bg-gray-700 rounded-lg border border-purple-200 dark:border-gray-600">
+                            <div class="flex-shrink-0 w-8 h-8 bg-purple-600 dark:bg-purple-500 text-white rounded-full flex items-center justify-center font-bold">2</div>
+                            <div>
+                                <p class="font-semibold text-gray-900 dark:text-white">Deep Extraction</p>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Extracts ALL atomic facts (propositions) and synthesizes key takeaways. Each fact is tagged with Bloom's Taxonomy level for cognitive depth.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Why Does it Take Time -->
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3">
+                        Processing Time: 15-30 Minutes
+                    </h3>
+                    <div class="bg-yellow-50 dark:bg-gray-700 border border-yellow-200 dark:border-yellow-900 rounded-lg p-4">
+                        <p class="text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
+                            GRAFF performs a <strong>comprehensive analysis</strong> of every paragraph in your chapter. Here's why it takes time:
+                        </p>
+                        <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                            <li class="flex items-start gap-2">
+                                <span class="text-blue-600 dark:text-blue-400 font-bold">•</span>
+                                <span><strong>Thoroughness:</strong> Extracts 50-100+ facts per 6,000 words (unlike quick summaries)</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="text-blue-600 dark:text-blue-400 font-bold">•</span>
+                                <span><strong>AI Processing:</strong> Uses GPT-4o for deep understanding and cognitive tagging</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="text-blue-600 dark:text-blue-400 font-bold">•</span>
+                                <span><strong>Quality over Speed:</strong> Ensures accuracy and completeness of every extracted fact</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- What You Get -->
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3">
+                        What You Get
+                    </h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                            <p class="font-semibold text-sm text-gray-900 dark:text-white">Propositions</p>
+                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">Every atomic fact extracted & tagged</p>
+                        </div>
+                        <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                            <p class="font-semibold text-sm text-gray-900 dark:text-white">Takeaways</p>
+                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">High-level insights synthesized</p>
+                        </div>
+                        <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                            <p class="font-semibold text-sm text-gray-900 dark:text-white">Bloom Levels</p>
+                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">Cognitive depth for each fact</p>
+                        </div>
+                        <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                            <p class="font-semibold text-sm text-gray-900 dark:text-white">Full Search</p>
+                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">SQLite FTS for fast retrieval</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CTA -->
+                <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button id="getStartedBtn" class="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5">
+                        Got it! Let's Analyze
+                    </button>
+                    <label class="flex items-center justify-center gap-2 mt-3 text-sm text-gray-600 dark:text-gray-400 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200">
+                        <input type="checkbox" id="dontShowAgain" class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500">
+                        <span>Don't show this again</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Content -->
     <main class="max-w-6xl mx-auto px-6 py-8">
         <!-- Upload Section -->

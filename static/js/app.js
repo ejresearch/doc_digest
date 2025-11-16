@@ -26,6 +26,57 @@ if (themeToggle) {
     });
 }
 
+// Welcome Modal handling
+function showWelcomeModal() {
+    const modal = document.getElementById('welcomeModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+function hideWelcomeModal() {
+    const modal = document.getElementById('welcomeModal');
+    const dontShowAgain = document.getElementById('dontShowAgain');
+
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+
+    if (dontShowAgain && dontShowAgain.checked) {
+        localStorage.setItem('graffModalSeen', 'true');
+    }
+}
+
+// Show modal on first visit
+document.addEventListener('DOMContentLoaded', () => {
+    const hasSeenModal = localStorage.getItem('graffModalSeen');
+    if (!hasSeenModal) {
+        setTimeout(showWelcomeModal, 500);
+    }
+
+    // Modal close handlers
+    const closeModal = document.getElementById('closeModal');
+    const getStartedBtn = document.getElementById('getStartedBtn');
+    const welcomeModal = document.getElementById('welcomeModal');
+
+    if (closeModal) {
+        closeModal.addEventListener('click', hideWelcomeModal);
+    }
+
+    if (getStartedBtn) {
+        getStartedBtn.addEventListener('click', hideWelcomeModal);
+    }
+
+    // Close on background click
+    if (welcomeModal) {
+        welcomeModal.addEventListener('click', (e) => {
+            if (e.target === welcomeModal) {
+                hideWelcomeModal();
+            }
+        });
+    }
+});
+
 // Real-time Log Viewer Functions
 function toggleLogViewer() {
     logViewerOpen = !logViewerOpen;
