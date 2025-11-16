@@ -301,9 +301,13 @@ uploadForm.addEventListener('submit', async (e) => {
                 if (update.status === 'timeout') {
                     eventSource.close();
                     console.log('SSE stream timed out, checking if analysis completed...');
+                    updateProgress('validation', 'Checking if analysis completed...', 95);
 
-                    // Manually check for completion since timeout doesn't trigger onerror
-                    setTimeout(async () => {
+                    // Poll for completion since the stream timed out but analysis might still be running
+                    let pollAttempts = 0;
+                    const maxPollAttempts = 30; // Poll for up to 5 more minutes (30 * 10s = 300s)
+
+                    const pollForCompletion = async () => {
                         try {
                             const listResponse = await fetch('/chapters/list');
                             const listData = await listResponse.json();
@@ -322,12 +326,28 @@ uploadForm.addEventListener('submit', async (e) => {
                                 }
                             }
 
-                            showErrorState('Stream timed out. Please refresh to check if analysis completed.');
+                            // Continue polling if we haven't exceeded max attempts
+                            pollAttempts++;
+                            if (pollAttempts < maxPollAttempts) {
+                                console.log(`Polling attempt ${pollAttempts}/${maxPollAttempts}...`);
+                                updateProgress('validation', `Still processing... (checking ${pollAttempts}/${maxPollAttempts})`, 95);
+                                setTimeout(pollForCompletion, 10000); // Poll every 10 seconds
+                            } else {
+                                showErrorState('Analysis is taking longer than expected. Please refresh to check if it completed.');
+                            }
                         } catch (checkError) {
                             console.error('Error checking for completion:', checkError);
-                            showErrorState('Stream timed out. Please refresh the page.');
+                            pollAttempts++;
+                            if (pollAttempts < maxPollAttempts) {
+                                setTimeout(pollForCompletion, 10000);
+                            } else {
+                                showErrorState('Unable to verify completion. Please refresh the page.');
+                            }
                         }
-                    }, 1000);
+                    };
+
+                    // Start polling after 2 seconds
+                    setTimeout(pollForCompletion, 2000);
                     return;
                 }
 
@@ -386,37 +406,54 @@ uploadForm.addEventListener('submit', async (e) => {
 
             // Check if analysis actually completed by fetching the chapter list
             console.log('Lost connection to progress stream, checking if analysis completed...');
+            updateProgress('validation', 'Connection lost, checking for results...', 95);
 
-            try {
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-                const listResponse = await fetch('/chapters/list');
-                const listData = await listResponse.json();
+            // Poll for completion since the connection was lost but analysis might still be running
+            let pollAttempts = 0;
+            const maxPollAttempts = 30; // Poll for up to 5 more minutes
 
-                // Find the most recent chapter (should be our new one if completed)
-                if (listData.chapters && listData.chapters.length > 0) {
-                    const latestChapter = listData.chapters[listData.chapters.length - 1];
+            const pollForCompletion = async () => {
+                try {
+                    const listResponse = await fetch('/chapters/list');
+                    const listData = await listResponse.json();
 
-                    // Check if it was created in the last 5 minutes
-                    const createdTime = new Date(latestChapter.created_at);
-                    const now = new Date();
-                    const diffMinutes = (now - createdTime) / 1000 / 60;
+                    if (listData.chapters && listData.chapters.length > 0) {
+                        const latestChapter = listData.chapters[listData.chapters.length - 1];
+                        const createdTime = new Date(latestChapter.created_at);
+                        const now = new Date();
+                        const diffMinutes = (now - createdTime) / 1000 / 60;
 
-                    if (diffMinutes < 5) {
-                        // Analysis completed! Load the results
-                        console.log('Analysis completed! Loading results...');
-                        updateProgress('completed', 'Analysis complete!', 100);
-                        await loadChapter(latestChapter.chapter_id);
-                        return;
+                        if (diffMinutes < 5) {
+                            // Analysis completed! Load the results
+                            console.log('Analysis completed! Loading results...');
+                            updateProgress('completed', 'Analysis complete!', 100);
+                            await loadChapter(latestChapter.chapter_id);
+                            return;
+                        }
+                    }
+
+                    // Continue polling if we haven't exceeded max attempts
+                    pollAttempts++;
+                    if (pollAttempts < maxPollAttempts) {
+                        console.log(`Polling attempt ${pollAttempts}/${maxPollAttempts}...`);
+                        updateProgress('validation', `Checking for results... (${pollAttempts}/${maxPollAttempts})`, 95);
+                        setTimeout(pollForCompletion, 10000); // Poll every 10 seconds
+                    } else {
+                        showErrorState('Connection lost. Please refresh to check if analysis completed.');
+                    }
+                } catch (checkError) {
+                    console.error('Error checking for completion:', checkError);
+                    pollAttempts++;
+                    if (pollAttempts < maxPollAttempts) {
+                        setTimeout(pollForCompletion, 10000);
+                    } else {
+                        showErrorState('Connection lost and unable to verify completion. Please refresh the page.');
                     }
                 }
+            };
 
-                // If we get here, analysis might still be running or failed
-                console.warn('Could not confirm completion. Analysis may still be running or may have failed.');
-                showErrorState('Connection lost. Please refresh the page to check if analysis completed.');
-            } catch (checkError) {
-                console.error('Error checking for completion:', checkError);
-                showErrorState('Connection lost and unable to verify completion. Please refresh the page.');
-            }
+            // Start polling after 1 second
+            setTimeout(pollForCompletion, 1000);
         };
 
     } catch (error) {
