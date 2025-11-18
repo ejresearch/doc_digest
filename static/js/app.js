@@ -356,7 +356,6 @@ uploadForm.addEventListener('submit', async (e) => {
 
                     // Poll for completion since the stream timed out but analysis might still be running
                     let pollAttempts = 0;
-                    const maxPollAttempts = 30; // Poll for up to 5 more minutes (30 * 10s = 300s)
 
                     const pollForCompletion = async () => {
                         try {
@@ -369,7 +368,7 @@ uploadForm.addEventListener('submit', async (e) => {
                                 const now = new Date();
                                 const diffMinutes = (now - createdTime) / 1000 / 60;
 
-                                if (diffMinutes < 5) {
+                                if (diffMinutes < 60) { // Consider chapters from last hour as potentially ours
                                     console.log('Analysis completed! Loading results...');
                                     updateProgress('completed', 'Analysis complete!', 100);
                                     await loadChapter(latestChapter.chapter_id);
@@ -377,23 +376,17 @@ uploadForm.addEventListener('submit', async (e) => {
                                 }
                             }
 
-                            // Continue polling if we haven't exceeded max attempts
+                            // Continue polling indefinitely
                             pollAttempts++;
-                            if (pollAttempts < maxPollAttempts) {
-                                console.log(`Polling attempt ${pollAttempts}/${maxPollAttempts}...`);
-                                updateProgress('validation', `Still processing... (checking ${pollAttempts}/${maxPollAttempts})`, 95);
-                                setTimeout(pollForCompletion, 10000); // Poll every 10 seconds
-                            } else {
-                                showErrorState('Analysis is taking longer than expected. Please refresh to check if it completed.');
-                            }
+                            const elapsedMinutes = Math.floor(pollAttempts * 10 / 60);
+                            console.log(`Polling attempt ${pollAttempts} (${elapsedMinutes} min elapsed)...`);
+                            updateProgress('validation', `Still processing... (${elapsedMinutes} minutes elapsed)`, 95);
+                            setTimeout(pollForCompletion, 10000); // Poll every 10 seconds
                         } catch (checkError) {
                             console.error('Error checking for completion:', checkError);
                             pollAttempts++;
-                            if (pollAttempts < maxPollAttempts) {
-                                setTimeout(pollForCompletion, 10000);
-                            } else {
-                                showErrorState('Unable to verify completion. Please refresh the page.');
-                            }
+                            // Continue polling even on errors - they might be temporary network issues
+                            setTimeout(pollForCompletion, 10000);
                         }
                     };
 
@@ -461,7 +454,6 @@ uploadForm.addEventListener('submit', async (e) => {
 
             // Poll for completion since the connection was lost but analysis might still be running
             let pollAttempts = 0;
-            const maxPollAttempts = 30; // Poll for up to 5 more minutes
 
             const pollForCompletion = async () => {
                 try {
@@ -474,7 +466,7 @@ uploadForm.addEventListener('submit', async (e) => {
                         const now = new Date();
                         const diffMinutes = (now - createdTime) / 1000 / 60;
 
-                        if (diffMinutes < 5) {
+                        if (diffMinutes < 60) { // Consider chapters from last hour as potentially ours
                             // Analysis completed! Load the results
                             console.log('Analysis completed! Loading results...');
                             updateProgress('completed', 'Analysis complete!', 100);
@@ -483,23 +475,17 @@ uploadForm.addEventListener('submit', async (e) => {
                         }
                     }
 
-                    // Continue polling if we haven't exceeded max attempts
+                    // Continue polling indefinitely
                     pollAttempts++;
-                    if (pollAttempts < maxPollAttempts) {
-                        console.log(`Polling attempt ${pollAttempts}/${maxPollAttempts}...`);
-                        updateProgress('validation', `Checking for results... (${pollAttempts}/${maxPollAttempts})`, 95);
-                        setTimeout(pollForCompletion, 10000); // Poll every 10 seconds
-                    } else {
-                        showErrorState('Connection lost. Please refresh to check if analysis completed.');
-                    }
+                    const elapsedMinutes = Math.floor(pollAttempts * 10 / 60);
+                    console.log(`Polling attempt ${pollAttempts} (${elapsedMinutes} min elapsed)...`);
+                    updateProgress('validation', `Checking for results... (${elapsedMinutes} minutes elapsed)`, 95);
+                    setTimeout(pollForCompletion, 10000); // Poll every 10 seconds
                 } catch (checkError) {
                     console.error('Error checking for completion:', checkError);
                     pollAttempts++;
-                    if (pollAttempts < maxPollAttempts) {
-                        setTimeout(pollForCompletion, 10000);
-                    } else {
-                        showErrorState('Connection lost and unable to verify completion. Please refresh the page.');
-                    }
+                    // Continue polling even on errors - they might be temporary network issues
+                    setTimeout(pollForCompletion, 10000);
                 }
             };
 
