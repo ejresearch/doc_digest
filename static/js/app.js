@@ -86,13 +86,83 @@ document.addEventListener('DOMContentLoaded', () => {
             const isHidden = sampleDataContent.classList.contains('hidden');
             if (isHidden) {
                 sampleDataContent.classList.remove('hidden');
-                sampleChevron.classList.add('rotate-90');
+                sampleChevron.style.transform = 'rotate(90deg)';
             } else {
                 sampleDataContent.classList.add('hidden');
-                sampleChevron.classList.remove('rotate-90');
+                sampleChevron.style.transform = 'rotate(0deg)';
             }
         });
     }
+
+    // Sample Data auto-load handlers
+    const sampleLinks = document.querySelectorAll('#sampleDataContent a, #welcomeModal a[href*="sample_data"]');
+    sampleLinks.forEach(link => {
+        link.addEventListener('click', async (e) => {
+            e.preventDefault();
+
+            const url = link.getAttribute('href');
+            const filename = url.split('/').pop();
+
+            try {
+                // Show loading state
+                const originalText = link.querySelector('p').textContent;
+                link.querySelector('p').textContent = 'Loading...';
+
+                // Fetch the file
+                const response = await fetch(url);
+                const text = await response.text();
+
+                // Create a File object
+                const file = new File([text], filename, { type: 'text/plain' });
+
+                // Set to file input
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                const fileInput = document.getElementById('fileInput');
+                fileInput.files = dataTransfer.files;
+
+                // Show filename
+                const fileNameDisplay = document.getElementById('fileName');
+                fileNameDisplay.textContent = filename;
+                fileNameDisplay.classList.remove('hidden');
+
+                // Pre-fill metadata based on filename
+                const chapterId = document.getElementById('chapterId');
+                const version = document.getElementById('version');
+                const sourceText = document.getElementById('sourceText');
+
+                if (filename.includes('photosynthesis')) {
+                    chapterId.value = 'sample-biology-01';
+                    sourceText.value = 'GRAFF Sample: Biology';
+                } else if (filename.includes('american')) {
+                    chapterId.value = 'sample-history-01';
+                    sourceText.value = 'GRAFF Sample: History';
+                } else if (filename.includes('algorithms')) {
+                    chapterId.value = 'sample-cs-01';
+                    sourceText.value = 'GRAFF Sample: CS';
+                } else if (filename.includes('scientific')) {
+                    chapterId.value = 'sample-science-01';
+                    sourceText.value = 'GRAFF Sample: Science';
+                } else if (filename.includes('critical')) {
+                    chapterId.value = 'sample-philosophy-01';
+                    sourceText.value = 'GRAFF Sample: Philosophy';
+                }
+
+                version.value = 'v1.0';
+
+                // Scroll to upload section
+                document.getElementById('uploadSection').scrollIntoView({ behavior: 'smooth' });
+
+                // Restore link text
+                link.querySelector('p').textContent = originalText;
+
+            } catch (error) {
+                console.error('Error loading sample file:', error);
+                alert('Failed to load sample file. Please try again.');
+                link.querySelector('p').textContent = originalText;
+            }
+        });
+    });
 });
 
 // Real-time Log Viewer Functions
