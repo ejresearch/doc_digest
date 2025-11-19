@@ -165,7 +165,7 @@
                         Sample Data Library
                     </h3>
                     <p class="text-sm text-gray-700 dark:text-gray-300 mb-3">
-                        Try GRAFF with our curated educational samples. Right-click to download, then upload through the form above:
+                        Try GRAFF with our curated educational samples. <strong>Right-click → "Save Link As..."</strong> to download, then upload through the form above:
                     </p>
                     <div class="space-y-2">
                         <a href="https://raw.githubusercontent.com/ejresearch/GRAFF/main/sample_data/01_photosynthesis_short.txt"
@@ -308,6 +308,73 @@
                             </span>
                         </button>
                     </form>
+
+                    <!-- Sample Data -->
+                    <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                        <button id="toggleSampleData" class="w-full flex items-center justify-between text-left group">
+                            <div class="flex items-center gap-2">
+                                <svg id="sampleChevron" class="w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                                <span class="text-sm font-semibold text-gray-900 dark:text-white">Try Sample Data</span>
+                            </div>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">5 educational files</span>
+                        </button>
+
+                        <div id="sampleDataContent" class="hidden mt-3 space-y-2">
+                            <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">Right-click any file → "Save Link As..." → Upload above</p>
+
+                            <a href="https://raw.githubusercontent.com/ejresearch/GRAFF/main/sample_data/01_photosynthesis_short.txt"
+                               class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors group text-sm"
+                               target="_blank">
+                                <span>🧬</span>
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-medium text-gray-900 dark:text-white text-xs">Photosynthesis</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Biology • 1-2 min</p>
+                                </div>
+                            </a>
+
+                            <a href="https://raw.githubusercontent.com/ejresearch/GRAFF/main/sample_data/02_american_revolution_medium.txt"
+                               class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors group text-sm"
+                               target="_blank">
+                                <span>🏛️</span>
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-medium text-gray-900 dark:text-white text-xs">American Revolution</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">History • 3-5 min</p>
+                                </div>
+                            </a>
+
+                            <a href="https://raw.githubusercontent.com/ejresearch/GRAFF/main/sample_data/03_algorithms_basics.txt"
+                               class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors group text-sm"
+                               target="_blank">
+                                <span>💻</span>
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-medium text-gray-900 dark:text-white text-xs">Algorithms & Data Structures</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">CS • 3-5 min</p>
+                                </div>
+                            </a>
+
+                            <a href="https://raw.githubusercontent.com/ejresearch/GRAFF/main/sample_data/04_scientific_method_quick.txt"
+                               class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors group text-sm"
+                               target="_blank">
+                                <span>🔬</span>
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-medium text-gray-900 dark:text-white text-xs">Scientific Method</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Science • 1-2 min</p>
+                                </div>
+                            </a>
+
+                            <a href="https://raw.githubusercontent.com/ejresearch/GRAFF/main/sample_data/05_critical_thinking.txt"
+                               class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors group text-sm"
+                               target="_blank">
+                                <span>🧠</span>
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-medium text-gray-900 dark:text-white text-xs">Critical Thinking</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Philosophy • 2-4 min</p>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
 
                     <!-- Processing Status -->
                     <div id="processingStatus" class="hidden text-center py-8">

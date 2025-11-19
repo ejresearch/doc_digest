@@ -75,6 +75,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Sample Data toggle
+    const toggleSampleData = document.getElementById('toggleSampleData');
+    const sampleDataContent = document.getElementById('sampleDataContent');
+    const sampleChevron = document.getElementById('sampleChevron');
+
+    if (toggleSampleData && sampleDataContent) {
+        toggleSampleData.addEventListener('click', () => {
+            const isHidden = sampleDataContent.classList.contains('hidden');
+            if (isHidden) {
+                sampleDataContent.classList.remove('hidden');
+                sampleChevron.classList.add('rotate-90');
+            } else {
+                sampleDataContent.classList.add('hidden');
+                sampleChevron.classList.remove('rotate-90');
+            }
+        });
+    }
 });
 
 // Real-time Log Viewer Functions
