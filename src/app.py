@@ -8,7 +8,7 @@ import io
 import json
 import asyncio
 from typing import Dict, List
-from .services.graff_orchestrator import digest_chapter_graff, DigestError, ValidationError, StorageError, PhaseError
+from .services.graff_orchestrator import digest_chapter_graff, DigestError, AnalysisError, StorageError
 from .db import list_chapters, load_chapter_analysis, init_database
 from .utils.logging_config import setup_logging, get_logger
 
@@ -73,6 +73,11 @@ async def stream_progress(job_id: str):
 async def startup_event():
     import os
     logger.info("Doc Digester API starting up")
+
+    # Initialize database
+    init_database()
+    logger.info("Database initialized")
+
     # Environment diagnostics
     logger.info(f"ENV CHECK - OPENAI_API_KEY: {'SET' if os.getenv('OPENAI_API_KEY') else 'NOT SET'}")
     logger.info(f"ENV CHECK - OPENAI_MODEL: {os.getenv('OPENAI_MODEL', 'NOT SET')}")
@@ -104,12 +109,9 @@ async def process_chapter_background(
         )
         add_progress(job_id, "completed", "Analysis complete!", "completed")
         logger.info(f"Successfully processed chapter: {result.chapter_id}")
-    except PhaseError as e:
-        logger.error(f"Phase error in background task: {e}")
-        add_progress(job_id, "error", f"Phase {e.phase} failed: {str(e)}", "error")
-    except ValidationError as e:
-        logger.error(f"Validation error in background task: {e}")
-        add_progress(job_id, "error", f"Validation failed: {str(e)}", "error")
+    except AnalysisError as e:
+        logger.error(f"Analysis error in background task: {e}")
+        add_progress(job_id, "error", f"Analysis failed: {str(e)}", "error")
     except StorageError as e:
         logger.error(f"Storage error in background task: {e}")
         add_progress(job_id, "error", f"Storage failed: {str(e)}", "error")
@@ -274,6 +276,29 @@ async def root():
 async def health_check():
     """Simple health check endpoint."""
     return {"status": "healthy", "service": "doc-digester"}
+
+@app.get("/samples")
+async def list_samples():
+    """List available sample data files."""
+    sample_path = Path(__file__).parent.parent / "sample_data"
+    if not sample_path.exists():
+        return {"samples": []}
+
+    samples = []
+    for f in sorted(sample_path.glob("*.txt")):
+        samples.append({
+            "filename": f.name,
+            "name": f.stem.split("_", 1)[1].replace("_", " ").title() if "_" in f.stem else f.stem
+        })
+    return {"samples": samples}
+
+@app.get("/samples/{filename}")
+async def get_sample(filename: str):
+    """Get a sample data file."""
+    sample_path = Path(__file__).parent.parent / "sample_data" / filename
+    if not sample_path.exists():
+        raise HTTPException(status_code=404, detail="Sample not found")
+    return FileResponse(str(sample_path), media_type="text/plain")
 
 @app.get("/chapters/list")
 async def get_chapters_list():

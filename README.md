@@ -1,29 +1,58 @@
-# GRAFF (Educational Chapter Analysis) v0.2.1
+# GRAFF (Granular Retrieval And Factual Framework) v0.3.0
 
-AI-powered educational chapter analysis system with 5-phase processing pipeline, comprehensive pedagogical extraction, real-time progress tracking, and modern web interface.
+AI-powered educational chapter analysis system that transforms textbook chapters into structured, queryable knowledge databases for adaptive tutoring systems.
+
+## What It Does
+
+GRAFF extracts a complete knowledge representation from textbook chapters:
+
+```
+Chapter Text → Structure → Propositions → Key Takeaways
+```
+
+- **Structure**: Hierarchical sections, summary, entities, keywords
+- **Propositions**: Atomic facts tagged with Bloom's Taxonomy levels
+- **Key Takeaways**: Higher-order insights synthesizing across propositions
+
+## Three-Pass Architecture
+
+GRAFF uses a three-pass pipeline where each pass builds on the previous:
+
+```
+Pass 1: STRUCTURE
+────────────────────────────────────────────────────────
+Input:  Chapter text
+Output: Sections, summary, entities, keywords
+        │
+        ▼ (feeds into)
+
+Pass 2: PROPOSITIONS
+────────────────────────────────────────────────────────
+Input:  Chapter text + structure from Pass 1
+Output: All atomic facts, tagged with unit_ids
+        │
+        ▼ (feeds into)
+
+Pass 3: KEY TAKEAWAYS
+────────────────────────────────────────────────────────
+Input:  Structure + ALL propositions
+Output: Synthesized insights linking proposition_ids
+```
+
+**Why three passes?**
+- Pass 2 needs structure to tag propositions with section IDs
+- Pass 3 needs ALL propositions to synthesize cross-section takeaways
+- Each pass is focused, producing higher quality output
 
 ## Features
 
-- **5-Phase Analysis Pipeline**: Comprehension → Structural Outline → Propositional Extraction → Analytical Metadata → Pedagogical Mapping
-- **Real-Time Progress Tracking**: Server-Sent Events (SSE) stream for live phase-by-phase updates
-- **Background Processing**: Non-blocking async analysis with immediate job_id response
-- **Pedagogical Intelligence**: Extracts learning objectives, student activities, assessment questions, visual media references, and temporal analysis
-- **Modern Web Interface**:
-  - Drag-and-drop file upload with tabbed results visualization
-  - Dark/light mode toggle with persistent preference
-  - Interactive progress bar with phase indicators
-  - Delete saved analyses with hover-to-reveal buttons
-  - Gradient animations and smooth transitions
-- **Temporal Analysis**: Identifies historical vs contemporary examples and flags content needing updates
-- **File Format Support**: `.txt`, `.docx`, and `.pdf` files with proper text extraction
-- **Large File Optimization**: Smart text truncation for 50K+ character documents to prevent timeouts
-- **GPT-4o Powered**: Uses OpenAI's GPT-4o with structured JSON output and automatic retry logic
-- **Comprehensive Error Handling**: Detailed error messages at every layer with proper exception types
-- **Structured Logging**: Full observability with INFO-level logging to console
-- **Phase-by-Phase Validation**: Pydantic validation after each phase + final JSON Schema validation
-- **JSON File Persistence**: Documents automatically saved to `data/chapters/` with timestamps
-- **File Size Protection**: 100MB upload limit with chunked reading
-- **Health Check Endpoint**: `/health` for monitoring
+- **Three-Pass Analysis**: Structure → Propositions → Takeaways
+- **Bloom's Taxonomy Tagging**: Propositions tagged as remember/understand/apply/analyze
+- **Cross-Section Synthesis**: Takeaways can bridge across multiple sections
+- **Real-Time Progress**: Server-Sent Events (SSE) for live updates
+- **Modern Web Interface**: Drag-and-drop upload, dark/light mode, tabbed results
+- **File Format Support**: `.txt`, `.docx`, `.pdf`
+- **GPT-5.2 Powered**: Uses OpenAI's latest model via `responses.create()` API
 
 ## Quick Start
 
@@ -33,7 +62,6 @@ pip install -e .
 
 # Set up OpenAI API key
 export OPENAI_API_KEY="your-api-key-here"
-export USE_ACTUAL_LLM="true"
 
 # Run the server
 uvicorn src.app:app --reload --port 8000
@@ -42,601 +70,198 @@ uvicorn src.app:app --reload --port 8000
 open http://localhost:8000
 ```
 
-## Web Interface
+## Output Structure
 
-The web interface provides a modern, user-friendly way to analyze educational chapters:
+GRAFF produces a `ChapterAnalysis` with three connected layers:
 
-- **Drag & Drop Upload**: Upload `.txt`, `.docx`, or `.pdf` files (up to 100MB)
-- **Real-Time Progress Tracking**: Live SSE stream showing actual phase progress
-  - Animated gradient progress bar with percentage
-  - 5 phase indicators (gray → blue pulsing → green)
-  - Time estimates and status messages
-  - Automatic result loading on completion
-- **Dark/Light Mode**: Toggle with persistent localStorage preference
-- **Manage Analyses**:
-  - View all saved chapter analyses
-  - Delete with hover-to-reveal buttons
-  - Load any previous analysis instantly
-- **Tabbed Results**:
-  - **Overview**: Chapter info, quick stats, and key concepts
-  - **Pedagogical**: Learning objectives, activities, assessments, discussion questions
-  - **Structure**: Hierarchical chapter outline
-  - **Propositions**: Truth claims with evidence
-  - **Temporal Analysis**: Historical/contemporary examples with update priorities
-  - **Raw JSON**: Copy-to-clipboard JSON output
-
-## API Endpoints
-
-### POST /chapters/digest
-
-Start background processing of a chapter through the 5-phase analysis pipeline. Returns immediately with a job_id for progress tracking.
-
-**Request** (multipart/form-data):
-- `file`: Text, Word, or PDF file (required, max 100MB)
-- `chapter_id`: Optional custom chapter ID
-- `file_name`: Optional filename override
-- `author_or_editor`: Optional author information
-- `version`: Version string (default: "v1")
-- `created_at`: ISO-8601 timestamp (auto-generated if not provided)
-- `source_text`: Optional source description
-
-**Response** (200 OK):
 ```json
 {
-  "job_id": "c41becf1-43c3-4e69-abb7-fac29f480bc8",
-  "status": "processing",
-  "message": "Analysis started. Use the job_id to track progress."
+  "chapter_id": "ch_abc123",
+  "chapter_title": "The Studio System",
+
+  "phase1": {
+    "summary": "One-paragraph overview...",
+    "sections": [
+      {"unit_id": "1.1", "title": "Introduction", "level": 1},
+      {"unit_id": "1.2", "title": "Vertical Integration", "level": 1},
+      {"unit_id": "1.2.1", "title": "Production Control", "level": 2, "parent_unit_id": "1.2"}
+    ],
+    "key_entities": [
+      {"name": "Paramount Pictures", "type": "organization"},
+      {"name": "vertical integration", "type": "concept"}
+    ],
+    "keywords": ["studio system", "block booking", "exhibition"]
+  },
+
+  "phase2": {
+    "propositions": [
+      {
+        "proposition_id": "ch_abc123_1.2_p001",
+        "unit_id": "1.2",
+        "proposition_text": "Vertical integration refers to studio ownership of production, distribution, and exhibition.",
+        "bloom_level": "remember",
+        "bloom_verb": "define",
+        "evidence_location": "1.2:¶002"
+      }
+    ],
+    "key_takeaways": [
+      {
+        "takeaway_id": "ch_abc123_t001",
+        "text": "Vertical integration allowed studios to dominate by controlling the entire supply chain.",
+        "proposition_ids": ["ch_abc123_1.2_p001", "ch_abc123_1.2_p003", "ch_abc123_1.3_p002"],
+        "dominant_bloom_level": "analyze"
+      }
+    ]
+  }
 }
 ```
 
-**Error Responses**:
-- `400 Bad Request`: Empty file, file too short (<100 chars), encoding error, invalid .docx/.pdf
-- `413 Request Entity Too Large`: File exceeds 100MB
-- `500 Internal Server Error`: Unexpected error during file processing
+## Bloom's Taxonomy Levels
 
-### GET /chapters/progress/{job_id}
+### Propositions (atomic facts)
+| Level | Description | Example |
+|-------|-------------|---------|
+| `remember` | Definitions, dates, facts | "Block booking was banned in 1948." |
+| `understand` | Explanations, cause-effect | "Vertical integration eliminated dependency on third parties." |
+| `apply` | Concrete examples | "Paramount owned 1,450 theaters by 1948." |
+| `analyze` | Comparisons, relationships | "The Big Five owned theaters while the Little Three did not." |
 
-Stream real-time progress updates via Server-Sent Events (SSE).
-
-**Response** (text/event-stream):
-```
-data: {"phase":"phase-1","message":"Analyzing chapter comprehension...","status":"in_progress","timestamp":"2025-10-28T16:22:01Z"}
-
-data: {"phase":"phase-1","message":"Phase 1 complete ✓","status":"in_progress","timestamp":"2025-10-28T16:22:21Z"}
-
-data: {"phase":"phase-2","message":"Building structural outline...","status":"in_progress","timestamp":"2025-10-28T16:22:21Z"}
-
-...
-
-data: {"phase":"completed","message":"Analysis complete!","status":"completed","timestamp":"2025-10-28T16:30:15Z"}
-```
-
-Stream automatically closes after 2 minutes or when status becomes "completed" or "error".
-
-### GET /chapters/list
-
-List all saved chapter analyses.
-
-**Response** (200 OK):
-```json
-{
-  "chapters": [
-    {
-      "filename": "ch-001_20251028_143022.json",
-      "chapter_id": "ch-001",
-      "version": "v25",
-      "source_text": "Introduction to Communication",
-      "created_at": "2025-10-28T14:30:22Z"
-    }
-  ]
-}
-```
-
-### GET /chapters/{filename}
-
-Retrieve a specific chapter analysis.
-
-**Response** (200 OK):
-```json
-{
-  "system_metadata": { ... },
-  "comprehension_pass": { ... },
-  "structural_outline": { ... },
-  "propositional_extraction": { ... },
-  "analytical_metadata": { ... },
-  "pedagogical_mapping": { ... }
-}
-```
-
-**Error Responses**:
-- `404 Not Found`: Chapter file doesn't exist
-- `500 Internal Server Error`: Failed to load chapter
-
-### DELETE /chapters/{filename}
-
-Delete a saved chapter analysis.
-
-**Response** (200 OK):
-```json
-{
-  "message": "Chapter deleted successfully",
-  "filename": "ch-001_20251028_143022.json"
-}
-```
-
-**Error Responses**:
-- `400 Bad Request`: Invalid filename (path traversal attempt)
-- `404 Not Found`: Chapter file doesn't exist
-- `500 Internal Server Error`: Failed to delete chapter
-
-### GET /
-
-Serves the web interface.
-
-### GET /health
-
-Health check endpoint.
-
-**Response** (200 OK):
-```json
-{
-  "status": "healthy",
-  "service": "doc-digester"
-}
-```
-
-## Example Usage
-
-```bash
-# Upload via web interface
-open http://localhost:8000
-
-# Or use curl for .txt files
-curl -X POST http://localhost:8000/chapters/digest \
-  -F file=@chapter.txt \
-  -F chapter_id=ch-001 \
-  -F version=v25 \
-  -F source_text="Introduction to Communication"
-
-# Or use curl for .docx files
-curl -X POST http://localhost:8000/chapters/digest \
-  -F file=@chapter.docx \
-  -F chapter_id=ch-002 \
-  -F version=v25
-
-# Health check
-curl http://localhost:8000/health
-```
+### Key Takeaways (synthesis)
+| Level | Description | Example |
+|-------|-------------|---------|
+| `analyze` | Patterns, relationships | "Theater ownership created a self-reinforcing market advantage." |
+| `evaluate` | Judgments, significance | "The Paramount decision proved only partially effective." |
 
 ## Project Structure
 
 ```
-doc_digester/
-├─ .gitignore
-├─ pyproject.toml
-├─ README.md
-├─ src/
-│  ├─ app.py                    # FastAPI app with .docx support
-│  ├─ models.py                 # Pydantic models (including Phase 5)
-│  ├─ schemas/
-│  │  └─ chapter-analysis.schema.json  # JSON Schema with pedagogical_mapping
-│  ├─ services/
-│  │  ├─ orchestrator.py        # 5-phase pipeline orchestration
-│  │  ├─ llm_client.py          # GPT-4o integration with retry logic
-│  │  ├─ openai_client.py       # OpenAI API wrapper with structured output
-│  │  ├─ prompts.py             # All 5 phase prompts
-│  │  └─ storage.py             # JSON file persistence
-│  └─ utils/
-│     ├─ logging_config.py      # Logging setup
-│     └─ validation.py          # JSON Schema validation
-├─ static/
-│  ├─ index.html                # Web interface
-│  ├─ css/
-│  │  └─ style.css              # Modern gradient styling
-│  └─ js/
-│     └─ app.js                 # Client-side app logic
-├─ data/
-│  └─ chapters/                 # Persisted analysis results (auto-created)
-└─ examples/
-   └─ sample_*.json             # Example outputs for each phase
+GRAFF/
+├── src/
+│   ├── app.py                      # FastAPI server
+│   ├── models.py                   # Pydantic models
+│   └── services/
+│       ├── openai_client.py        # GPT-5.2 via responses.create()
+│       ├── llm_client.py           # Three-pass analysis functions
+│       └── graff_orchestrator.py   # Pipeline orchestration
+├── prompts/
+│   ├── pass1_structure.txt         # Pass 1 prompt
+│   ├── pass2_propositions.txt      # Pass 2 prompt
+│   └── pass3_takeaways.txt         # Pass 3 prompt
+├── static/
+│   ├── index.html                  # Web interface
+│   └── js/app.js                   # Client-side logic
+└── data/
+    └── chapters/                   # Saved analyses
 ```
 
-## Pipeline Phases
+## API Endpoints
 
-### Phase 1: Comprehension Pass
-- **Framework**: WHO/WHAT/WHEN/WHY/HOW
-- **Temperature**: 0.15 (deterministic)
-- **Model**: `ComprehensionPass`
-- **Extracts**: Entities, concepts, temporal context, significance, teaching approach
+### POST /chapters/digest
+Start analysis of a chapter. Returns immediately with job_id.
 
-### Phase 2: Structural Outline
-- **Purpose**: Hierarchical chapter structure
-- **Temperature**: 0.2
-- **Model**: `StructuralOutline`
-- **Builds**: Sections → Subtopics → Sub-subtopics with pedagogical metadata
-
-### Phase 3: Propositional Extraction
-- **Purpose**: Truth statements with evidence
-- **Temperature**: 0.2
-- **Model**: `PropositionalExtraction`
-- **Identifies**: Descriptive, analytical, and normative claims with textual evidence
-
-### Phase 4: Analytical Metadata
-- **Purpose**: Curriculum context
-- **Temperature**: 0.25
-- **Model**: `AnalyticalMetadata`
-- **Derives**: Subject domain, curriculum unit, grade level, related chapters (explicitly mentioned only)
-
-### Phase 5: Pedagogical Mapping (NEW in v0.2.0)
-- **Purpose**: Learning support elements and temporal analysis
-- **Temperature**: 0.15
-- **Model**: `PedagogicalMapping`
-- **Max Tokens**: 16,000 (4x default for comprehensive extraction)
-- **Extracts**:
-  - Learning objectives
-  - Student activities (BYLINE exercises, reflections, observations)
-  - Assessment questions (KNOWLEDGE CHECK quizzes with types)
-  - Chapter summaries and review sections
-  - Visual media references with pedagogical purpose
-  - Temporal analysis:
-    - Historical examples (with relevance flags)
-    - Contemporary examples (with update priority: low/medium/high)
-    - Temporal range (e.g., "1890s-2025")
-  - Potential discussion questions
-
-Each phase:
-- Builds on previous phase results
-- Validates immediately with Pydantic (fail fast)
-- Retries automatically on transient API failures (exponential backoff)
-- Logs progress and errors
-
-Final document validated against:
-- Pydantic `ChapterAnalysis` model
-- JSON Schema (Draft 2020-12)
-
-## Pipeline Architecture
-
-GRAFF functions as a **content-to-cognition pipeline** that extracts and structures textbook content into a queryable knowledge base for LLM-powered tutoring systems. The pipeline feeds a database schema organized around **Bloom's Taxonomy** cognitive levels.
-
-```
-📚 TEXTBOOK CHAPTER (Input)
-│
-├─────────────────────────────────────────────────────────────┐
-│                                                             │
-▼                                                             ▼
-┌─────────────────────────────────────────┐    ┌──────────────────────────────────┐
-│  PHASE 1: Outline & Unit Extraction     │    │  PHASE 4: Analytical Metadata    │
-│  (Structural mapping)                   │    │  (Classification & Tagging)      │
-└─────────────────────────────────────────┘    └──────────────────────────────────┘
-│                                                             │
-│ Extracts:                                                   │ Derives:
-│ • Chapter/section hierarchy                                 │ • Subject domain
-│ • Text chunks by section                                    │ • Grade level
-│ • Keywords per unit                                         │ • Prerequisites
-│ • Sequence order                                            │ • Curriculum position
-│                                                             │
-▼                                                             ▼
-DATABASE: content_units                          DATABASE: metadata fields
-├─ unit_id                                      ├─ project_id
-├─ chapter, section                             ├─ domain
-├─ text_snippet                                 ├─ grade_level
-├─ keywords                                     └─ related_chapters
-├─ sequence_order
-└─ depth_level
-         │
-         │
-         ├──────────────────────────────────┐
-         │                                  │
-         ▼                                  ▼
-┌────────────────────────────────┐  ┌─────────────────────────────────┐
-│ PHASE 2: Bloom-Tagged          │  │ PHASE 5: Learning Objectives    │
-│ Proposition Generation         │  │ & Assessment Elements           │
-│ (Multi-level cognitive content)│  │ (Pedagogical scaffolding)       │
-└────────────────────────────────┘  └─────────────────────────────────┘
-│                                                  │
-│ For EACH unit, generates propositions at:        │ Extracts:
-│ • REMEMBER (facts, definitions)                  │ • Learning objectives
-│ • UNDERSTAND (explanations)                      │ • Assessment questions
-│ • APPLY (applications, examples)                 │ • Student activities
-│ • ANALYZE (comparisons, causes)                  │ • Discussion prompts
-│ • EVALUATE (judgments, critiques)                │
-│ • CREATE (novel applications)                    │
-│                                                  │
-▼                                                  ▼
-DATABASE: propositions                DATABASE: learning_objectives
-├─ proposition_id                    ├─ objective_id
-├─ unit_id (FK)                      ├─ objective_text
-├─ proposition_text                  ├─ bloom_level ★
-├─ bloom_level ★                     └─ related_units
-├─ bloom_verb
-└─ evidence_location                 DATABASE: tasks (seed data)
-         │                           ├─ task_id
-         │                           ├─ unit_id (FK)
-         ▼                           ├─ bloom_level ★
-┌────────────────────────────────┐   ├─ generated_text
-│ PHASE 3: Examples &            │   └─ status
-│ Relationships                  │
-│ (Supporting content)           │
-└────────────────────────────────┘
-│
-│ Extracts:
-│ • Concrete examples
-│ • Case studies
-│ • Code samples
-│ • Concept relationships
-│
-▼
-DATABASE: examples
-├─ example_id
-├─ unit_id (FK)
-├─ example_text
-├─ example_type
-└─ illustrates_proposition
-
-DATABASE: concept_relationships
-├─ parent_unit_id
-├─ child_unit_id
-└─ relationship_type
-    (prerequisite, elaborates, contrasts)
-
-════════════════════════════════════════════════════════════════
-
-ALL PHASES COMPLETE → DATABASE POPULATED
-│
-├─ content_units (structure)
-├─ propositions (Bloom-tagged content) ★
-├─ examples (illustrations)
-├─ concept_relationships (dependencies)
-├─ learning_objectives (goals)
-└─ Metadata (domain, grade_level, etc.)
-
-════════════════════════════════════════════════════════════════
-
-DOWNSTREAM PROCESSES
-│
-├─────────────────────┬──────────────────────┬─────────────────────┐
-│                     │                      │                     │
-▼                     ▼                      ▼                     ▼
-TASK GENERATION   LEARNER PATHING    ADAPTIVE TUTORING    COVERAGE TRACKING
-│                     │                      │                     │
-Uses:                 Uses:                  Uses:                 Monitors:
-• propositions        • outline position     • learner_tasks       • Which sections
-  + bloom_level       • bloom_level          • bloom_level           have propositions
-• prompt_templates    • prerequisites        • performance         • Which Bloom levels
-  (by domain)                                  scores                covered per unit
-• bloom_verbs        Guides:                                      • Gaps in higher-
-                     "Finished Apply         Adapts:                order thinking
-Generates:            tasks in 3.2?          "Student failing
-• Study questions     → Move to Analyze       Understand?          Flags:
-• Practice prompts     tasks in 3.3"          → Drop to            "Section 3.4 has
-• Scenarios                                    Remember level"      no Evaluate tasks"
-│                     │                      │                     │
-▼                     ▼                      ▼                     ▼
-DATABASE: tasks   LEARNING PATH UI    🤖 LLM TUTOR          ANALYTICS DASHBOARD
-                                      │
-                                      Queries by:
-                                      • "Get all 'understand'
-                                         propositions for Ch 3"
-                                      • "Get examples for
-                                         unit_3.2"
-                                      • "Get prerequisites
-                                         for this concept"
-                                      │
-                                      Uses to:
-                                      • Answer questions
-                                      • Generate explanations
-                                      • Scaffold learning
-                                      • Check understanding
-                                      • Adapt difficulty
-
-════════════════════════════════════════════════════════════════
-
-LEARNER INTERACTION LOOP
-│
-Student asks question about Ch 3.2
-        ▼
-LLM queries: propositions WHERE unit_id='unit_3.2' AND bloom_level='understand'
-        ▼
-LLM retrieves: examples WHERE unit_id='unit_3.2'
-        ▼
-LLM generates explanation using proposition + example
-        ▼
-Student demonstrates understanding
-        ▼
-LLM queries: tasks WHERE unit_id='unit_3.2' AND bloom_level='apply'
-        ▼
-LLM presents practice scenario
-        ▼
-Student completes task → logged to learner_tasks
-        ▼
-System evaluates: ready for 'analyze' level? → repeat
+```bash
+curl -X POST http://localhost:8000/chapters/digest \
+  -F file=@chapter.txt \
+  -F chapter_id=ch-001
 ```
 
-### Key Pipeline Insights
+### GET /chapters/progress/{job_id}
+Stream real-time progress via SSE.
 
-1. **Phases 1, 3, 5** extract content → populate core database tables
-2. **Phase 4** classifies and tags → enables smart filtering and querying
-3. **Phase 2** is the cognitive core → generates Bloom-tagged propositions at multiple cognitive levels
-4. **★ Bloom's Taxonomy** flows through the entire pipeline as the organizing principle
-5. **LLM Tutor** queries the database by Bloom level + unit + domain for adaptive instruction
-6. **Learner progression** is guided by Bloom hierarchy combined with outline position
+```
+data: {"phase":"pass-1","message":"Extracting structure..."}
+data: {"phase":"pass-2","message":"Extracting propositions..."}
+data: {"phase":"pass-3","message":"Synthesizing takeaways..."}
+data: {"phase":"completed","message":"Done! 85 propositions, 12 takeaways"}
+```
 
-## Temporal Analysis
+### GET /chapters/list
+List all saved analyses.
 
-Phase 5 includes sophisticated temporal tracking:
+### GET /chapters/{filename}
+Retrieve a specific analysis.
 
-**Historical Examples**:
-- Automatically identifies dated examples (e.g., "M*A*S*H series (1970s)")
-- Flags whether they're still relevant for teaching
+### DELETE /chapters/{filename}
+Delete a saved analysis.
 
-**Contemporary Examples**:
-- Identifies current references (e.g., "TikTok", "iPad kids")
-- Assigns update priority (low/medium/high) based on volatility
-- Records "current as of" date for future maintenance
+## Processing Pipeline
 
-**Temporal Range**:
-- Captures the overall time span of content (e.g., "1890s-2025")
-- Helps identify chapters that may need updating
+```
+┌─────────────────────────────────────────┐
+│         User uploads file               │
+└────────────────────┬────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────┐
+│    Pass 1: Structure (4K tokens)        │
+│    → sections, summary, entities        │
+└────────────────────┬────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────┐
+│    Pass 2: Propositions (16K tokens)    │
+│    → atomic facts with Bloom levels     │
+└────────────────────┬────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────┐
+│    Pass 3: Takeaways (8K tokens)        │
+│    → cross-section synthesis            │
+└────────────────────┬────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────┐
+│    Save to SQLite + JSON                │
+└─────────────────────────────────────────┘
+```
 
-## Processing Time & Cost
+## Configuration
 
-**Processing Time** (varies by chapter length and API load):
-- Phase 1 (Comprehension): 20-60 seconds
-- Phase 2 (Structure): 60-120 seconds
-- Phase 3 (Propositions): 120-240 seconds (largest phase)
-- Phase 4 (Metadata): 10-30 seconds
-- Phase 5 (Pedagogical): 300-600 seconds (comprehensive extraction)
-- **Total**: 10-20 minutes for a typical textbook chapter
+```bash
+# Required
+export OPENAI_API_KEY="sk-..."
 
-**Cost per Chapter** (with gpt-4o at $2.50/1M input, $10/1M output):
-- Short chapter (5-10 pages): $0.10-0.25
-- Medium chapter (15-25 pages): $0.30-0.60
-- Long chapter (30+ pages): $0.75-1.50
+# Optional (with defaults)
+export OPENAI_MODEL="gpt-5.2"
+export OPENAI_MAX_TOKENS="16000"
+export OPENAI_TIMEOUT="300"
+```
 
 ## File Format Support
 
-### Plain Text (.txt)
-- UTF-8 or Latin-1 encoding
-- Direct text extraction
+| Format | Library | Notes |
+|--------|---------|-------|
+| `.txt` | Built-in | UTF-8 or Latin-1 |
+| `.docx` | python-docx | Extracts paragraph text |
+| `.pdf` | PyPDF2 | Text-based PDFs only |
 
-### Microsoft Word (.docx)
-- Automatically extracts paragraph text using `python-docx`
-- Strips Word formatting and metadata
-- Reduces file size significantly (944KB .docx → 220KB text)
-- **Note**: Tables, images, and complex formatting are not preserved
+**Limits**: 100MB max upload, recommended <50K tokens of text.
 
-### PDF (.pdf)
-- Automatically extracts text using `PyPDF2`
-- Processes all pages and combines text
-- Works with standard text-based PDFs
-- **Note**: Scanned PDFs without OCR will extract poorly
+## Changes in v0.3.0
 
-**File Size Limits**:
-- Max upload: 100MB
-- Recommended: Keep chapters under 200KB of actual text (~50K tokens)
-- Large documents (>50K characters) automatically use smart truncation:
-  - Phase 1: Full text (comprehension analysis needs complete content)
-  - Phase 2: First 50K characters + comprehension results
-  - Phase 3: First 50K characters + comprehension + structure
-  - Phase 5: First 30K + last 20K characters (captures objectives + summaries)
+### Architecture Overhaul
+- **Three-pass pipeline** replaces 5-phase system
+- **GPT-5.2** via new `responses.create()` API
+- **Cross-section takeaways**: Pass 3 sees ALL propositions for true synthesis
 
-This intelligent truncation prevents timeouts while maintaining analysis quality by leveraging previously extracted structured data.
+### New Files
+- `prompts/pass1_structure.txt` - Structure extraction prompt
+- `prompts/pass2_propositions.txt` - Proposition extraction prompt
+- `prompts/pass3_takeaways.txt` - Takeaway synthesis prompt
 
-## Error Handling
+### Removed
+- Old phase prompts (phase1_system.txt, phase2_system.txt)
+- Section-by-section chunking in proposition extraction
+- Separate takeaway generation per section
 
-Custom exceptions with detailed error messages:
+## Use Cases
 
-- **DigestError**: Base exception for pipeline failures
-- **PhaseError**: Specific phase failures (includes phase number and original error)
-- **ValidationError**: Schema/model validation failures (with detailed path information)
-- **StorageError**: Persistence failures
-- **LLMConfigurationError**: Missing OpenAI API key
-- **LLMAPIError**: OpenAI API failures (with retry logic)
+GRAFF powers downstream systems:
 
-All errors are logged with full context and returned to the client with appropriate HTTP status codes.
-
-## Fabrication Prevention
-
-The system has been carefully tuned to prevent AI hallucination:
-
-**Phase 3 & 4 - Related Chapters**:
-- Prompts explicitly instruct: "DO NOT invent or fabricate chapters"
-- Only extracts chapter references that are explicitly mentioned in the source text
-- Returns empty array if no connections are mentioned
-
-**Phase 5 - Pedagogical Elements**:
-- Extracts only elements that are actually present in the chapter
-- Uses location markers to tie extractions to specific sections
-- High precision mode to avoid inferring activities that don't exist
-
-## Changes from v0.2.0 to v0.2.1
-
-### Major Features
-- ✅ **Real-Time Progress Tracking** - Server-Sent Events (SSE) for live phase updates
-- ✅ **Background Processing** - Non-blocking async analysis with immediate job_id response
-- ✅ **PDF Support** - Extract text from PDF files using PyPDF2
-- ✅ **Dark/Light Mode** - Theme toggle with persistent localStorage preference
-- ✅ **Delete Functionality** - Remove saved analyses with hover-to-reveal buttons
-- ✅ **Smart Text Truncation** - Prevent timeouts on large documents (>50K characters)
-- ✅ **100MB File Limit** - Increased from 10MB to support larger documents
-
-### Technical Improvements
-- ✅ Background task processing with `asyncio.create_task()`
-- ✅ SSE streaming endpoint `/chapters/progress/{job_id}`
-- ✅ Intelligent text truncation per phase (50K chars for phases 2-3, 30K+20K for phase 5)
-- ✅ CRUD endpoints: GET/DELETE `/chapters/{filename}`, GET `/chapters/list`
-- ✅ Enhanced progress UI with animated gradient bar and phase indicators
-- ✅ Tailwind CSS migration with gradient animations
-- ✅ EventSource integration for real-time frontend updates
-- ✅ Path traversal protection in delete endpoint
-
-### Bug Fixes
-- ✅ Fixed Phase 2/3/5 timeouts on large documents (218K+ characters)
-- ✅ Fixed file selection display issues (click-to-browse not working)
-- ✅ Fixed progress tracking showing fake simulated data
-- ✅ Increased timeout from 60s to 180s and retries from 3 to 5
-
-## Changes from v0.1.0 to v0.2.0
-
-### Major Features
-- ✅ **Phase 5: Pedagogical Mapping** - New comprehensive learning support extraction
-- ✅ **Temporal Analysis** - Historical vs contemporary example tracking with update priorities
-- ✅ **Web Interface** - Modern drag-and-drop UI with tabbed results visualization
-- ✅ **Word Document Support** - Proper `.docx` text extraction (not just binary decoding)
-- ✅ **OpenAI Integration** - Full GPT-4o integration with structured JSON output
-- ✅ **Fabrication Prevention** - Strict prompts to prevent hallucinated chapter references
-
-### Technical Improvements
-- ✅ Higher token limits for Phase 5 (16K tokens for comprehensive extraction)
-- ✅ Static file serving for web interface
-- ✅ Improved error handling for file format issues
-- ✅ Better logging with phase-specific progress tracking
-- ✅ Enhanced Pydantic models with 8 new classes for Phase 5
-
-### Bug Fixes
-- ✅ Fixed .docx files being decoded as binary (was causing 8x token overflow)
-- ✅ Fixed Phase 5 JSON truncation issues
-- ✅ Fixed UTF-8 decoding fallback logic
-- ✅ Removed fabricated chapter references from prompts
-
-## Development
-
-### Environment Variables
-
-```bash
-# Required for LLM mode
-export OPENAI_API_KEY="sk-..."
-export USE_ACTUAL_LLM="true"
-
-# Optional
-export OPENAI_MODEL="gpt-4o"  # Default model
-```
-
-### Logging
-
-Logging is configured at the INFO level by default. To change:
-```python
-setup_logging(level="DEBUG")  # in src/app.py
-```
-
-Logs include:
-- Phase execution progress with timing
-- .docx paragraph extraction counts
-- Validation results
-- Storage operations
-- OpenAI API retries and errors
-- Full error stack traces
-
-### Customizing Prompts
-
-All prompts are in `src/services/prompts.py`:
-- `get_phase_1_prompts()` - Comprehension (WHO/WHAT/WHEN/WHY/HOW)
-- `get_phase_2_prompts()` - Structural outline
-- `get_phase_3_prompts()` - Propositional extraction
-- `get_phase_4_prompts()` - Analytical metadata
-- `get_phase_5_prompts()` - Pedagogical mapping (260+ lines)
-
-Each prompt function returns a dict with `system_prompt` and `user_prompt` keys.
+- **Adaptive Tutoring**: Query propositions by Bloom level for scaffolded learning
+- **Knowledge Graphs**: Takeaways link propositions into semantic networks
+- **Assessment Generation**: Generate questions from propositions at target cognitive levels
+- **Content Gap Analysis**: Identify sections lacking higher-order (analyze/evaluate) content
 
 ## License
 

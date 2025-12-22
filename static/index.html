@@ -1,573 +1,1067 @@
 <!DOCTYPE html>
-<html lang="en" class="light">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GRAFF - Educational Chapter Analysis</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-        }
-    </script>
-    <script>
-        // Initialize theme before page load to prevent flash
-        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GRAFF - Educational Chapter Analysis</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-primary: #fff;
+      --bg-secondary: #fafafa;
+      --bg-tertiary: #f4f4f5;
+      --bg-inverse: #111;
+      --text-primary: #111;
+      --text-secondary: #52525b;
+      --text-muted: #71717a;
+      --text-inverse: #fff;
+      --border: #e4e4e7;
+      --border-light: #f4f4f5;
+      --shadow: rgba(0,0,0,0.08);
+      --nav-bg: rgba(255,255,255,0.9);
+      --accent: #3b82f6;
+      --accent-light: #dbeafe;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* Navigation */
+    nav {
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background: var(--nav-bg);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      cursor: pointer;
+    }
+
+    .logo {
+      width: 36px;
+      height: 36px;
+      background: var(--bg-inverse);
+      border-radius: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.125rem;
+      color: var(--text-inverse);
+    }
+
+    .brand h1 {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .brand p {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: var(--bg-inverse);
+      color: var(--text-inverse);
+      padding: 0.625rem 1.25rem;
+      text-decoration: none;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      border-radius: 1.5rem;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px var(--shadow);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text-primary);
+      box-shadow: inset 0 0 0 1.5px var(--border);
+    }
+
+    .btn-outline:hover {
+      box-shadow: inset 0 0 0 1.5px var(--text-primary);
+    }
+
+    .btn-sm {
+      padding: 0.375rem 0.75rem;
+      font-size: 0.75rem;
+    }
+
+    /* Main Content */
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Page Views */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* Cards */
+    .card {
+      background: var(--bg-primary);
+      border-radius: 1rem;
+      padding: 1.75rem;
+      transition: all 0.25s ease;
+      border: 1px solid var(--border);
+    }
+
+    .card:hover {
+      box-shadow: 0 12px 32px var(--shadow);
+    }
+
+    .card-header {
+      margin-bottom: 1.5rem;
+    }
+
+    .card-header h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.25rem;
+    }
+
+    .card-header p {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+
+    /* Form Elements */
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 0.375rem;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.625rem 0.875rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      transition: border-color 0.2s ease;
+      outline: none;
+    }
+
+    .form-group input:focus {
+      border-color: var(--text-muted);
+    }
+
+    .form-group input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    /* Drop Zone */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 0.75rem;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 1rem;
+    }
+
+    .drop-zone:hover {
+      border-color: var(--text-muted);
+      background: var(--bg-tertiary);
+    }
+
+    .drop-zone.dragover {
+      border-color: var(--text-primary);
+      background: var(--bg-tertiary);
+    }
+
+    .drop-zone-icon {
+      width: 40px;
+      height: 40px;
+      margin: 0 auto 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .drop-zone p {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .drop-zone span {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .file-name {
+      background: var(--bg-tertiary);
+      padding: 0.625rem 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    .file-name.show { display: block; }
+
+    /* Sample Data */
+    .sample-section {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .sample-section h3 {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 0.75rem;
+    }
+
+    .sample-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.5rem;
+    }
+
+    .sample-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.625rem 0.875rem;
+      background: var(--bg-secondary);
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .sample-item:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .sample-item span {
+      font-size: 0.8125rem;
+      font-weight: 500;
+    }
+
+    .sample-item small {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+    }
+
+    /* Features */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .feature {
+      padding: 1.25rem;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+    }
+
+    .feature h4 {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .feature p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* ==================== */
+    /* PROCESSING PAGE      */
+    /* ==================== */
+    .processing-container {
+      text-align: center;
+      padding: 3rem 0;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid var(--border);
+      border-top-color: var(--text-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 1.5rem;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .processing-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .processing-message {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+    }
+
+    /* Progress Bar */
+    .progress-section {
+      max-width: 400px;
+      margin: 0 auto 2rem;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: var(--bg-tertiary);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--bg-inverse);
+      border-radius: 4px;
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+
+    /* Pass Indicators */
+    .pass-indicators {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .pass-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+
+    .pass-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+
+    .pass-indicator.active .pass-dot {
+      background: var(--bg-inverse);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .pass-indicator.complete .pass-dot {
+      background: #22c55e;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Live Stats */
+    .live-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      max-width: 500px;
+      margin: 0 auto 2rem;
+    }
+
+    .live-stat {
+      background: var(--bg-tertiary);
+      padding: 1rem;
+      border-radius: 0.75rem;
+      text-align: center;
+    }
+
+    .live-stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .live-stat-label {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Latest Preview */
+    .latest-preview {
+      background: var(--bg-tertiary);
+      border-radius: 0.75rem;
+      padding: 1rem 1.25rem;
+      max-width: 600px;
+      margin: 0 auto;
+      text-align: left;
+    }
+
+    .latest-preview-header {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .latest-preview-text {
+      font-size: 0.875rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
+    /* ==================== */
+    /* ANALYSIS VIEW PAGE   */
+    /* ==================== */
+    .analysis-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 2rem;
+    }
+
+    .analysis-title h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .analysis-title p {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+
+    .analysis-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    /* Summary Section */
+    .summary-section {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .summary-section h3 {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .summary-section p {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .stats-row {
+      display: flex;
+      gap: 1.5rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-light);
+    }
+
+    .stats-row .stat-item {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .stats-row .stat-item strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* Collapsible Outline */
+    .outline-container {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      overflow: hidden;
+    }
+
+    .outline-section {
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .outline-section:last-child {
+      border-bottom: none;
+    }
+
+    .outline-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .outline-header:hover {
+      background: var(--bg-secondary);
+    }
+
+    .outline-toggle {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .outline-section.open .outline-toggle {
+      transform: rotate(90deg);
+    }
+
+    .outline-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .outline-meta {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+    }
+
+    .outline-content {
+      display: none;
+      padding: 0 1.25rem 1rem 3rem;
+    }
+
+    .outline-section.open .outline-content {
+      display: block;
+    }
+
+    /* Nested Items */
+    .nested-group {
+      margin-bottom: 1rem;
+    }
+
+    .nested-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .nested-label {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .nested-item {
+      background: var(--bg-secondary);
+      border-radius: 0.5rem;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.8125rem;
+      line-height: 1.6;
+    }
+
+    .nested-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .nested-item-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    /* Bloom Badges */
+    .bloom-badge {
+      font-size: 0.625rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 0.1875rem 0.5rem;
+      border-radius: 0.25rem;
+      letter-spacing: 0.05em;
+    }
+
+    .bloom-remember { background: #dbeafe; color: #1e40af; }
+    .bloom-understand { background: #dcfce7; color: #166534; }
+    .bloom-apply { background: #fef3c7; color: #92400e; }
+    .bloom-analyze { background: #fce7f3; color: #9d174d; }
+    .bloom-evaluate { background: #ede9fe; color: #6b21a8; }
+
+    /* Chapter-Level Takeaways */
+    .chapter-takeaways {
+      margin-top: 1.5rem;
+    }
+
+    .chapter-takeaways h3 {
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .takeaway-card {
+      background: var(--bg-primary);
+      border-left: 3px solid var(--bg-inverse);
+      padding: 1rem 1rem 1rem 1.25rem;
+      margin-bottom: 0.75rem;
+      border-radius: 0 0.5rem 0.5rem 0;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--bg-inverse);
+    }
+
+    .takeaway-text {
+      font-size: 0.9375rem;
+      font-weight: 500;
+      line-height: 1.6;
+      margin-bottom: 0.5rem;
+    }
+
+    .takeaway-meta {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+    }
+
+    /* ==================== */
+    /* LIBRARY PAGE         */
+    /* ==================== */
+    .library-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .library-header h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .library-grid {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .library-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .library-item:hover {
+      box-shadow: 0 4px 12px var(--shadow);
+      border-color: var(--text-muted);
+    }
+
+    .library-item-info h4 {
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .library-item-info p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .library-item-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .delete-btn {
+      opacity: 0;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0.25rem 0.5rem;
+      font-size: 1rem;
+      transition: opacity 0.2s ease, color 0.2s ease;
+    }
+
+    .library-item:hover .delete-btn {
+      opacity: 1;
+    }
+
+    .delete-btn:hover {
+      color: #ef4444;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+    }
+
+    .empty-state p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    /* Tags */
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+    }
+
+    .tag {
+      font-size: 0.6875rem;
+      padding: 0.25rem 0.625rem;
+      background: var(--bg-tertiary);
+      border-radius: 1rem;
+      color: var(--text-secondary);
+    }
+
+    /* Raw JSON */
+    .raw-json-section {
+      margin-top: 1.5rem;
+    }
+
+    .raw-json-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .raw-json-header h3 {
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .raw-json {
+      background: #18181b;
+      color: #4ade80;
+      padding: 1rem;
+      border-radius: 0.75rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.75rem;
+      overflow-x: auto;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .features { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      .live-stats { grid-template-columns: 1fr; }
+      .pass-indicators { flex-direction: column; gap: 0.5rem; }
+      main { padding: 1rem; }
+      nav { padding: 1rem; }
+      .analysis-header { flex-direction: column; gap: 1rem; }
+      .sample-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Hidden utility */
+    .hidden { display: none !important; }
+  </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-200">
-    <!-- Header -->
-    <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 transition-colors duration-200">
-        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-500 dark:from-blue-500 dark:to-blue-400 rounded-lg flex items-center justify-center shadow-lg">
-                    <span class="text-white text-xl font-bold">G</span>
-                </div>
-                <div>
-                    <h1 class="text-xl font-semibold text-gray-900 dark:text-white">GRAFF</h1>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Educational Chapter Analysis</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-3">
-                <!-- Theme Toggle -->
-                <button id="themeToggle" class="p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 hover:scale-110" aria-label="Toggle theme">
-                    <svg id="sunIcon" class="w-5 h-5 hidden dark:block transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                    </svg>
-                    <svg id="moonIcon" class="w-5 h-5 block dark:hidden transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
-                    </svg>
-                </button>
-                <button id="homeBtn" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 hover:scale-105">
-                    New Analysis
-                </button>
-            </div>
+<body>
+  <nav>
+    <div class="nav-left" onclick="navigateTo('home')">
+      <div class="logo">G</div>
+      <div class="brand">
+        <h1>GRAFF</h1>
+        <p>Educational Chapter Analysis</p>
+      </div>
+    </div>
+    <div class="nav-right">
+      <button class="btn btn-outline" id="libraryBtn" onclick="navigateTo('library')">Library</button>
+      <button class="btn" id="newAnalysisBtn" onclick="navigateTo('home')">+ New Analysis</button>
+    </div>
+  </nav>
+
+  <main>
+    <!-- ==================== -->
+    <!-- PAGE 1: NEW ANALYSIS -->
+    <!-- ==================== -->
+    <div class="page active" id="page-home">
+      <div class="card">
+        <div class="card-header">
+          <h2>New Analysis</h2>
+          <p>Upload a chapter for three-pass GRAFF analysis</p>
         </div>
-    </header>
 
-    <!-- Welcome Modal -->
-    <div id="welcomeModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700 animate-fade-in">
-            <!-- Header -->
-            <div class="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 p-8 rounded-t-2xl">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg">
-                            <span class="text-3xl font-bold bg-gradient-to-br from-blue-600 to-purple-600 bg-clip-text text-transparent">G</span>
-                        </div>
-                        <div>
-                            <h2 class="text-2xl font-bold text-white">Welcome to GRAFF</h2>
-                            <p class="text-blue-100 text-sm">Educational Chapter Analysis System</p>
-                        </div>
-                    </div>
-                    <button id="closeModal" class="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
+        <form id="uploadForm">
+          <label for="fileInput">
+            <div class="drop-zone" id="dropZone">
+              <svg class="drop-zone-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+              </svg>
+              <p>Drop file here or click to browse</p>
+              <span>.txt, .docx, .pdf (max 100MB)</span>
             </div>
+            <input type="file" id="fileInput" accept=".txt,.docx,.pdf" required class="hidden">
+          </label>
+          <div class="file-name" id="fileName"></div>
 
-            <!-- Content -->
-            <div class="p-6 space-y-6">
-                <!-- What is GRAFF -->
-                <div>
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3">
-                        What is GRAFF?
-                    </h3>
-                    <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
-                        GRAFF is an AI-powered system that transforms educational textbook chapters into structured, searchable knowledge.
-                        It extracts <strong>every atomic fact</strong> from your content and organizes it for optimal learning.
-                    </p>
-                </div>
-
-                <!-- How it Works -->
-                <div>
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3">
-                        2-Phase Analysis Pipeline
-                    </h3>
-                    <div class="space-y-3">
-                        <div class="flex gap-3 p-4 bg-blue-50 dark:bg-gray-700 rounded-lg border border-blue-200 dark:border-gray-600">
-                            <div class="flex-shrink-0 w-8 h-8 bg-blue-600 dark:bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">1</div>
-                            <div>
-                                <p class="font-semibold text-gray-900 dark:text-white">Structure Analysis</p>
-                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Identifies chapter sections, entities, keywords, and creates a comprehensive summary</p>
-                            </div>
-                        </div>
-                        <div class="flex gap-3 p-4 bg-purple-50 dark:bg-gray-700 rounded-lg border border-purple-200 dark:border-gray-600">
-                            <div class="flex-shrink-0 w-8 h-8 bg-purple-600 dark:bg-purple-500 text-white rounded-full flex items-center justify-center font-bold">2</div>
-                            <div>
-                                <p class="font-semibold text-gray-900 dark:text-white">Deep Extraction</p>
-                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Extracts ALL atomic facts (propositions) and synthesizes key takeaways. Each fact is tagged with Bloom's Taxonomy level for cognitive depth.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Why Does it Take Time -->
-                <div>
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3">
-                        Processing Time: 15-30 Minutes
-                    </h3>
-                    <div class="bg-yellow-50 dark:bg-gray-700 border border-yellow-200 dark:border-yellow-900 rounded-lg p-4">
-                        <p class="text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
-                            GRAFF performs a <strong>comprehensive analysis</strong> of every paragraph in your chapter. Here's why it takes time:
-                        </p>
-                        <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                            <li class="flex items-start gap-2">
-                                <span class="text-blue-600 dark:text-blue-400 font-bold">•</span>
-                                <span><strong>Thoroughness:</strong> Extracts 50-100+ facts per 6,000 words (unlike quick summaries)</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <span class="text-blue-600 dark:text-blue-400 font-bold">•</span>
-                                <span><strong>AI Processing:</strong> Uses GPT-4o for deep understanding and cognitive tagging</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <span class="text-blue-600 dark:text-blue-400 font-bold">•</span>
-                                <span><strong>Quality over Speed:</strong> Ensures accuracy and completeness of every extracted fact</span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                <!-- What You Get -->
-                <div>
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3">
-                        What You Get
-                    </h3>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                            <p class="font-semibold text-sm text-gray-900 dark:text-white">Propositions</p>
-                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">Every atomic fact extracted & tagged</p>
-                        </div>
-                        <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                            <p class="font-semibold text-sm text-gray-900 dark:text-white">Takeaways</p>
-                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">High-level insights synthesized</p>
-                        </div>
-                        <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                            <p class="font-semibold text-sm text-gray-900 dark:text-white">Bloom Levels</p>
-                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">Cognitive depth for each fact</p>
-                        </div>
-                        <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                            <p class="font-semibold text-sm text-gray-900 dark:text-white">Full Search</p>
-                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">SQLite FTS for fast retrieval</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Sample Data Library -->
-                <div>
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3">
-                        Sample Data Library
-                    </h3>
-                    <p class="text-sm text-gray-700 dark:text-gray-300 mb-3">
-                        Try GRAFF with our curated educational samples. <strong>Click any file to auto-load</strong> it into the upload form:
-                    </p>
-                    <div class="space-y-2">
-                        <a href="https://raw.githubusercontent.com/ejresearch/GRAFF/main/sample_data/01_photosynthesis_short.txt"
-                           download="01_photosynthesis_short.txt"
-                           class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors group">
-                            <span class="text-lg">🧬</span>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-semibold text-gray-900 dark:text-white">Photosynthesis</p>
-                                <p class="text-xs text-gray-600 dark:text-gray-400">Biology • ~5K chars • 1-2 min processing</p>
-                            </div>
-                            <svg class="w-4 h-4 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                            </svg>
-                        </a>
-
-                        <a href="https://raw.githubusercontent.com/ejresearch/GRAFF/main/sample_data/02_american_revolution_medium.txt"
-                           download="02_american_revolution_medium.txt"
-                           class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors group">
-                            <span class="text-lg">🏛️</span>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-semibold text-gray-900 dark:text-white">American Revolution</p>
-                                <p class="text-xs text-gray-600 dark:text-gray-400">History • ~12K chars • 3-5 min processing</p>
-                            </div>
-                            <svg class="w-4 h-4 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                            </svg>
-                        </a>
-
-                        <a href="https://raw.githubusercontent.com/ejresearch/GRAFF/main/sample_data/03_algorithms_basics.txt"
-                           download="03_algorithms_basics.txt"
-                           class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors group">
-                            <span class="text-lg">💻</span>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-semibold text-gray-900 dark:text-white">Algorithms & Data Structures</p>
-                                <p class="text-xs text-gray-600 dark:text-gray-400">Computer Science • ~10K chars • 3-5 min processing</p>
-                            </div>
-                            <svg class="w-4 h-4 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                            </svg>
-                        </a>
-
-                        <a href="https://raw.githubusercontent.com/ejresearch/GRAFF/main/sample_data/04_scientific_method_quick.txt"
-                           download="04_scientific_method_quick.txt"
-                           class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors group">
-                            <span class="text-lg">🔬</span>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-semibold text-gray-900 dark:text-white">Scientific Method</p>
-                                <p class="text-xs text-gray-600 dark:text-gray-400">Science • ~4K chars • 1-2 min processing</p>
-                            </div>
-                            <svg class="w-4 h-4 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                            </svg>
-                        </a>
-
-                        <a href="https://raw.githubusercontent.com/ejresearch/GRAFF/main/sample_data/05_critical_thinking.txt"
-                           download="05_critical_thinking.txt"
-                           class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors group">
-                            <span class="text-lg">🧠</span>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-semibold text-gray-900 dark:text-white">Critical Thinking</p>
-                                <p class="text-xs text-gray-600 dark:text-gray-400">Philosophy • ~8K chars • 2-4 min processing</p>
-                            </div>
-                            <svg class="w-4 h-4 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                            </svg>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- CTA -->
-                <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <button id="getStartedBtn" class="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5">
-                        Got it! Let's Analyze
-                    </button>
-                    <label class="flex items-center justify-center gap-2 mt-3 text-sm text-gray-600 dark:text-gray-400 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200">
-                        <input type="checkbox" id="dontShowAgain" class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500">
-                        <span>Don't show this again</span>
-                    </label>
-                </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="chapterId">Chapter ID</label>
+              <input type="text" id="chapterId" placeholder="ch-01-intro" required>
             </div>
+            <div class="form-group">
+              <label for="version">Version</label>
+              <input type="text" id="version" placeholder="v1.0" value="v1.0">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="sourceText">Source</label>
+              <input type="text" id="sourceText" placeholder="Textbook or document name">
+            </div>
+            <div class="form-group">
+              <label for="author">Author</label>
+              <input type="text" id="author" placeholder="Optional">
+            </div>
+          </div>
+
+          <button type="submit" class="btn" style="width: 100%; margin-top: 0.5rem;">
+            Analyze Chapter
+          </button>
+        </form>
+
+        <!-- Sample Data -->
+        <div class="sample-section">
+          <h3>Try Sample Data</h3>
+          <div class="sample-grid">
+            <!-- Populated dynamically -->
+          </div>
         </div>
+      </div>
+
+      <!-- Three Passes -->
+      <div class="features">
+        <div class="feature">
+          <h4>Pass 1: Structure</h4>
+          <p>Extract sections, summary, key entities, and keywords</p>
+        </div>
+        <div class="feature">
+          <h4>Pass 2: Propositions</h4>
+          <p>Extract atomic facts tagged with Bloom's Taxonomy levels</p>
+        </div>
+        <div class="feature">
+          <h4>Pass 3: Takeaways</h4>
+          <p>Synthesize key insights across propositions and sections</p>
+        </div>
+      </div>
     </div>
 
-    <!-- Main Content -->
-    <main class="max-w-6xl mx-auto px-6 py-8">
-        <!-- Upload Section -->
-        <section id="uploadSection" class="space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Upload Card -->
-                <div class="unique-card bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-                    <div class="flex items-center gap-2 mb-2">
-                        <div class="w-2 h-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full animate-pulse"></div>
-                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Upload Chapter</h2>
-                    </div>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">2-phase GRAFF analysis with GPT-4o</p>
+    <!-- ==================== -->
+    <!-- PAGE 2: PROCESSING   -->
+    <!-- ==================== -->
+    <div class="page" id="page-processing">
+      <div class="card">
+        <div class="processing-container">
+          <div class="spinner"></div>
+          <div class="processing-title" id="processingTitle">Analyzing Chapter</div>
+          <div class="processing-message" id="processingMessage">Starting analysis...</div>
 
-                    <form id="uploadForm" class="space-y-4">
-                        <!-- File Upload -->
-                        <label for="fileInput" class="cursor-pointer">
-                            <div id="dropZone" class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors">
-                                <svg class="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                </svg>
-                                <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Drop file here or click to browse</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">.txt, .docx, .pdf (max 100MB)</p>
-                            </div>
-                            <input type="file" id="fileInput" accept=".txt,.docx,.pdf" required class="hidden">
-                        </label>
-                        <div id="fileName" class="hidden text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-lg mt-3"></div>
-
-                        <!-- Metadata -->
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Chapter ID</label>
-                                <input type="text" id="chapterId" required placeholder="ch-01-intro" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Version</label>
-                                <input type="text" id="version" required placeholder="v1.0" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Source</label>
-                                <input type="text" id="sourceText" placeholder="Textbook name" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Author</label>
-                                <input type="text" id="author" placeholder="Optional" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent">
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn-ripple w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 dark:from-blue-500 dark:to-blue-400 dark:hover:from-blue-600 dark:hover:to-blue-500 text-white font-semibold rounded-lg transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0">
-                            <span class="flex items-center justify-center gap-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                </svg>
-                                Analyze Chapter
-                            </span>
-                        </button>
-                    </form>
-
-                    <!-- Sample Data -->
-                    <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                        <button id="toggleSampleData" class="w-full flex items-center justify-between text-left group">
-                            <div class="flex items-center gap-2">
-                                <svg id="sampleChevron" class="w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                                <span class="text-sm font-semibold text-gray-900 dark:text-white">Try Sample Data</span>
-                            </div>
-                            <span class="text-xs text-gray-500 dark:text-gray-400">5 educational files</span>
-                        </button>
-
-                        <div id="sampleDataContent" class="hidden mt-3 space-y-2">
-                            <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">Click any file to auto-load it into the form above</p>
-
-                            <a href="https://raw.githubusercontent.com/ejresearch/GRAFF/main/sample_data/01_photosynthesis_short.txt"
-                               class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors group text-sm"
-                               target="_blank">
-                                <span>🧬</span>
-                                <div class="flex-1 min-w-0">
-                                    <p class="font-medium text-gray-900 dark:text-white text-xs">Photosynthesis</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">Biology • 1-2 min</p>
-                                </div>
-                            </a>
-
-                            <a href="https://raw.githubusercontent.com/ejresearch/GRAFF/main/sample_data/02_american_revolution_medium.txt"
-                               class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors group text-sm"
-                               target="_blank">
-                                <span>🏛️</span>
-                                <div class="flex-1 min-w-0">
-                                    <p class="font-medium text-gray-900 dark:text-white text-xs">American Revolution</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">History • 3-5 min</p>
-                                </div>
-                            </a>
-
-                            <a href="https://raw.githubusercontent.com/ejresearch/GRAFF/main/sample_data/03_algorithms_basics.txt"
-                               class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors group text-sm"
-                               target="_blank">
-                                <span>💻</span>
-                                <div class="flex-1 min-w-0">
-                                    <p class="font-medium text-gray-900 dark:text-white text-xs">Algorithms & Data Structures</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">CS • 3-5 min</p>
-                                </div>
-                            </a>
-
-                            <a href="https://raw.githubusercontent.com/ejresearch/GRAFF/main/sample_data/04_scientific_method_quick.txt"
-                               class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors group text-sm"
-                               target="_blank">
-                                <span>🔬</span>
-                                <div class="flex-1 min-w-0">
-                                    <p class="font-medium text-gray-900 dark:text-white text-xs">Scientific Method</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">Science • 1-2 min</p>
-                                </div>
-                            </a>
-
-                            <a href="https://raw.githubusercontent.com/ejresearch/GRAFF/main/sample_data/05_critical_thinking.txt"
-                               class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors group text-sm"
-                               target="_blank">
-                                <span>🧠</span>
-                                <div class="flex-1 min-w-0">
-                                    <p class="font-medium text-gray-900 dark:text-white text-xs">Critical Thinking</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">Philosophy • 2-4 min</p>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Processing Status -->
-                    <div id="processingStatus" class="hidden text-center py-8">
-                        <div class="relative inline-flex items-center justify-center mb-4">
-                            <div class="absolute w-16 h-16 border-4 border-blue-200 dark:border-blue-900 rounded-full animate-ping"></div>
-                            <div class="relative w-12 h-12 border-4 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                        <p id="progressPhase" class="text-sm font-semibold text-gray-700 dark:text-gray-300">Processing chapter...</p>
-                        <p id="progressMessage" class="text-xs text-gray-500 dark:text-gray-400 mt-1">Starting analysis...</p>
-
-                        <!-- Progress Bar -->
-                        <div class="mt-4 w-full max-w-md mx-auto">
-                            <div class="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-2">
-                                <span id="progressPercent">0%</span>
-                                <span id="progressETA">Estimating time...</span>
-                            </div>
-                            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-                                <div id="progressBar" class="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
-                            </div>
-                        </div>
-
-                        <!-- Phase Indicators -->
-                        <div class="mt-6 flex justify-center gap-3">
-                            <div id="phase-1-indicator" class="flex items-center gap-2 px-4 py-2 rounded-full text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 font-medium">
-                                <span>Phase 1: Structure</span>
-                            </div>
-                            <div id="phase-2-indicator" class="flex items-center gap-2 px-4 py-2 rounded-full text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 font-medium">
-                                <span>Phase 2: Extraction</span>
-                            </div>
-                        </div>
-
-                        <!-- Real-time Log Viewer -->
-                        <div class="mt-6">
-                            <button id="toggleLogs" onclick="toggleLogViewer()" class="w-full flex items-center justify-between px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors">
-                                <span class="flex items-center gap-2">
-                                    <svg id="logChevron" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                    </svg>
-                                    <span>Detailed Extraction Log</span>
-                                </span>
-                                <span id="logCount" class="text-xs bg-blue-600 text-white px-2 py-1 rounded-full">0</span>
-                            </button>
-                            <div id="logViewer" class="hidden mt-2 bg-gray-900 dark:bg-gray-950 rounded-lg p-4 max-h-96 overflow-y-auto font-mono text-xs">
-                                <div id="logContent" class="space-y-1"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Existing Analyses -->
-                <div class="unique-card bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-                    <div class="flex items-center gap-2 mb-2">
-                        <div class="w-2 h-2 bg-gradient-to-r from-green-600 to-blue-600 rounded-full animate-pulse"></div>
-                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Analyses</h2>
-                    </div>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">View previously analyzed chapters</p>
-                    <div id="existingChapters" class="space-y-2"></div>
-                </div>
+          <!-- Progress Bar -->
+          <div class="progress-section">
+            <div class="progress-header">
+              <span id="progressPercent">0%</span>
+              <span id="progressETA">Estimating...</span>
             </div>
-
-            <!-- Features -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="hover-glow group relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800 rounded-xl shadow-md border-2 border-blue-200 dark:border-gray-700 p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400 dark:hover:border-blue-600">
-                    <div class="relative z-10">
-                        <div class="emoji-float text-4xl mb-3 inline-block">📚</div>
-                        <h3 class="font-black text-gray-900 dark:text-white text-base mb-2 tracking-tight">Comprehensive Extraction</h3>
-                        <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Extract ALL atomic facts from textbook chapters</p>
-                    </div>
-                </div>
-                <div class="hover-glow group relative overflow-hidden bg-gradient-to-br from-purple-50 via-white to-purple-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800 rounded-xl shadow-md border-2 border-purple-200 dark:border-gray-700 p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-purple-400 dark:hover:border-purple-600">
-                    <div class="relative z-10">
-                        <div class="emoji-float text-4xl mb-3 inline-block">🎯</div>
-                        <h3 class="font-black text-gray-900 dark:text-white text-base mb-2 tracking-tight">Bloom's Taxonomy</h3>
-                        <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Tag every fact with cognitive level for adaptive learning</p>
-                    </div>
-                </div>
-                <div class="hover-glow group relative overflow-hidden bg-gradient-to-br from-green-50 via-white to-green-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800 rounded-xl shadow-md border-2 border-green-200 dark:border-gray-700 p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-green-400 dark:hover:border-green-600">
-                    <div class="relative z-10">
-                        <div class="emoji-float text-4xl mb-3 inline-block">🔍</div>
-                        <h3 class="font-black text-gray-900 dark:text-white text-base mb-2 tracking-tight">Full-Text Search</h3>
-                        <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">SQLite FTS5 for fast proposition retrieval</p>
-                    </div>
-                </div>
+            <div class="progress-bar">
+              <div class="progress-fill" id="progressBar"></div>
             </div>
-        </section>
+          </div>
 
-        <!-- Results Section -->
-        <section id="resultsSection" class="hidden space-y-6">
-            <div class="result-card rounded-xl shadow-xl border-2 border-gray-200 dark:border-gray-700 p-6 transition-all duration-300">
-                <div class="flex items-center justify-between mb-6">
-                    <div class="flex items-center gap-3">
-                        <div class="w-1 h-8 bg-gradient-to-b from-blue-600 to-purple-600 rounded-full"></div>
-                        <h2 class="text-xl font-black text-gray-900 dark:text-white tracking-tight">Analysis Results</h2>
-                    </div>
-                    <button id="newAnalysisBtn" class="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 hover:scale-105">
-                        New Analysis
-                    </button>
-                </div>
-
-                <!-- Tabs -->
-                <div class="flex gap-2 overflow-x-auto pb-4 mb-6 relative">
-                    <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 opacity-20"></div>
-                    <button class="tab px-5 py-2.5 text-sm font-bold rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 text-white shadow-lg transition-all duration-200 hover:shadow-xl" data-tab="overview">Overview</button>
-                    <button class="tab px-5 py-2.5 text-sm font-semibold rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-50 dark:hover:from-gray-700 dark:hover:to-gray-700 transition-all duration-200 hover:scale-105 hover:shadow-md" data-tab="phase1">Phase 1: Structure</button>
-                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="propositions">Propositions</button>
-                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="takeaways">Key Takeaways</button>
-                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="bloom">Bloom Analysis</button>
-                    <button class="tab px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-tab="raw">Raw JSON</button>
-                </div>
-
-                <!-- Tab Content -->
-                <div class="tab-content">
-                    <!-- Overview Tab -->
-                    <div class="tab-panel" id="overview">
-                        <div id="graffOverview"></div>
-                    </div>
-
-                    <!-- Phase 1: Structure Tab -->
-                    <div class="tab-panel hidden" id="phase1">
-                        <div class="space-y-6">
-                            <!-- Summary -->
-                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-5">
-                                <h3 class="text-base font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                    <span class="text-xl">📝</span>
-                                    <span>Chapter Summary</span>
-                                </h3>
-                                <div id="summaryContent" class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed"></div>
-                            </div>
-
-                            <!-- Sections Tree -->
-                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-5">
-                                <h3 class="text-base font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                    <span class="text-xl">📚</span>
-                                    <span>Chapter Structure</span>
-                                </h3>
-                                <div id="sectionsTree" class="text-sm space-y-2"></div>
-                            </div>
-
-                            <!-- Key Entities -->
-                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-5">
-                                <h3 class="text-base font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                    <span class="text-xl">👥</span>
-                                    <span>Key Entities</span>
-                                </h3>
-                                <div id="entitiesContent"></div>
-                            </div>
-
-                            <!-- Keywords -->
-                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-5">
-                                <h3 class="text-base font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                    <span class="text-xl">🏷️</span>
-                                    <span>Keywords</span>
-                                </h3>
-                                <div id="keywordsContent"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Propositions Tab -->
-                    <div class="tab-panel hidden" id="propositions">
-                        <div class="space-y-4">
-                            <!-- Bloom Filter -->
-                            <div class="flex items-center justify-between flex-wrap gap-3">
-                                <div id="bloomFilter" class="flex gap-2 flex-wrap"></div>
-                                <div id="propositionsCount" class="text-sm font-semibold text-gray-700 dark:text-gray-300"></div>
-                            </div>
-                            <!-- Propositions List -->
-                            <div id="propositionsList" class="space-y-3"></div>
-                        </div>
-                    </div>
-
-                    <!-- Key Takeaways Tab -->
-                    <div class="tab-panel hidden" id="takeaways">
-                        <div id="takeawaysList" class="space-y-4"></div>
-                    </div>
-
-                    <!-- Bloom Analysis Tab -->
-                    <div class="tab-panel hidden" id="bloom">
-                        <div id="bloomCharts" class="space-y-6"></div>
-                    </div>
-
-                    <!-- Raw JSON Tab -->
-                    <div class="tab-panel hidden" id="raw">
-                        <div class="relative">
-                            <button id="copyJsonBtn" class="absolute top-2 right-2 px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded transition-colors">Copy</button>
-                            <pre id="rawJson" class="bg-gray-900 dark:bg-black text-green-400 dark:text-green-300 p-4 rounded-lg text-xs overflow-x-auto max-h-[600px] overflow-y-auto"></pre>
-                        </div>
-                    </div>
-                </div>
+          <!-- Pass Indicators -->
+          <div class="pass-indicators">
+            <div class="pass-indicator" id="pass1-indicator">
+              <div class="pass-dot"></div>
+              <span>Pass 1: Structure</span>
             </div>
-        </section>
-    </main>
+            <div class="pass-indicator" id="pass2-indicator">
+              <div class="pass-dot"></div>
+              <span>Pass 2: Propositions</span>
+            </div>
+            <div class="pass-indicator" id="pass3-indicator">
+              <div class="pass-dot"></div>
+              <span>Pass 3: Takeaways</span>
+            </div>
+          </div>
 
-    <script src="/static/js/app.js"></script>
+          <!-- Live Stats -->
+          <div class="live-stats">
+            <div class="live-stat">
+              <div class="live-stat-value" id="liveSections">-</div>
+              <div class="live-stat-label">Sections</div>
+            </div>
+            <div class="live-stat">
+              <div class="live-stat-value" id="livePropositions">-</div>
+              <div class="live-stat-label">Propositions</div>
+            </div>
+            <div class="live-stat">
+              <div class="live-stat-value" id="liveTakeaways">-</div>
+              <div class="live-stat-label">Takeaways</div>
+            </div>
+          </div>
+
+          <!-- Latest Preview -->
+          <div class="latest-preview" id="latestPreview" style="display: none;">
+            <div class="latest-preview-header">Latest Finding</div>
+            <div class="latest-preview-text" id="latestPreviewText"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== -->
+    <!-- PAGE 3: ANALYSIS VIEW -->
+    <!-- ==================== -->
+    <div class="page" id="page-analysis">
+      <div class="analysis-header">
+        <div class="analysis-title">
+          <h2 id="analysisTitle">Analysis Results</h2>
+          <p id="analysisMeta">-</p>
+        </div>
+        <div class="analysis-actions">
+          <button class="btn btn-outline btn-sm" onclick="exportMarkdown()">Export Markdown</button>
+          <button class="btn btn-outline btn-sm" onclick="copyJson()">Copy JSON</button>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div class="summary-section">
+        <h3>Summary</h3>
+        <p id="analysisSummary">-</p>
+        <div class="stats-row" id="analysisStats"></div>
+      </div>
+
+      <!-- Collapsible Outline -->
+      <div class="outline-container" id="outlineContainer">
+        <!-- Sections rendered dynamically -->
+      </div>
+
+      <!-- Chapter-Level Takeaways -->
+      <div class="chapter-takeaways">
+        <h3>Key Takeaways</h3>
+        <div id="chapterTakeaways">
+          <!-- Takeaways rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- Raw JSON (collapsible) -->
+      <div class="raw-json-section">
+        <div class="raw-json-header">
+          <h3>Raw JSON</h3>
+          <button class="btn btn-outline btn-sm" onclick="toggleRawJson()">Show/Hide</button>
+        </div>
+        <pre class="raw-json hidden" id="rawJson"></pre>
+      </div>
+    </div>
+
+    <!-- ==================== -->
+    <!-- PAGE 4: LIBRARY      -->
+    <!-- ==================== -->
+    <div class="page" id="page-library">
+      <div class="library-header">
+        <h2>Analysis Library</h2>
+        <button class="btn" onclick="navigateTo('home')">+ New Analysis</button>
+      </div>
+
+      <div class="library-grid" id="libraryGrid">
+        <!-- Library items rendered dynamically -->
+      </div>
+
+      <!-- Sample Data -->
+      <div class="sample-section">
+        <h3>Try Sample Data</h3>
+        <div class="sample-grid">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/static/js/app.js"></script>
 </body>
 </html>

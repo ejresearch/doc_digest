@@ -19,9 +19,9 @@ load_dotenv()
 
 # Configuration from environment
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
-OPENAI_MAX_TOKENS = int(os.getenv("OPENAI_MAX_TOKENS", "4000"))
-OPENAI_TIMEOUT = int(os.getenv("OPENAI_TIMEOUT", "180"))
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.2")
+OPENAI_MAX_TOKENS = int(os.getenv("OPENAI_MAX_TOKENS", "16000"))
+OPENAI_TIMEOUT = int(os.getenv("OPENAI_TIMEOUT", "300"))
 OPENAI_MAX_RETRIES = int(os.getenv("OPENAI_MAX_RETRIES", "5"))
 OPENAI_RETRY_MIN_WAIT = int(os.getenv("OPENAI_RETRY_MIN_WAIT", "4"))
 OPENAI_RETRY_MAX_WAIT = int(os.getenv("OPENAI_RETRY_MAX_WAIT", "10"))
@@ -98,6 +98,7 @@ def call_openai_with_retry(
 ) -> str:
     """
     Call OpenAI API with automatic retry on transient failures.
+    Uses the new responses.create() API with gpt-5.2.
 
     Args:
         system_prompt: System message to set context
@@ -119,26 +120,19 @@ def call_openai_with_retry(
         tokens = max_tokens or OPENAI_MAX_TOKENS
         logger.debug(f"Calling OpenAI API with model={OPENAI_MODEL}, temp={temperature}, max_tokens={tokens}")
 
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ]
+        # Combine system and user prompts for the new API
+        combined_input = f"{system_prompt}\n\n---\n\n{user_prompt}"
 
-        # Build request kwargs
-        kwargs: Dict[str, Any] = {
-            "model": OPENAI_MODEL,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": tokens
-        }
-
-        # Add response_format if provided (for JSON mode)
+        # Add JSON instruction if response_format is specified
         if response_format:
-            kwargs["response_format"] = response_format
+            combined_input += "\n\nRespond with valid JSON only."
 
-        response = client.chat.completions.create(**kwargs)
+        response = client.responses.create(
+            model=OPENAI_MODEL,
+            input=combined_input
+        )
 
-        content = response.choices[0].message.content
+        content = response.output_text
         if not content:
             raise LLMAPIError("Empty response from OpenAI API")
 
